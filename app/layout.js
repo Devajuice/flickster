@@ -3,7 +3,7 @@ import Footer from '@/components/Footer';
 import './globals.css';
 
 export const metadata = {
-  metadataBase: new URL('https://flickster.com'), // Replace with your actual domain when deployed
+  metadataBase: new URL('https://flickstered.vercel.app/'), // Replace with your actual domain when deployed
   title: 'Flickster - Watch Movies Free',
   description:
     'Stream movies and TV shows for free. No subscription required. Watch thousands of movies and series online.',
@@ -27,7 +27,7 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://flickster.com',
+    url: 'https://flickstered.vercel.app/',
     siteName: 'Flickster',
     title: 'Flickster - Watch Movies & TV Shows Free',
     description:
