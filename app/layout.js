@@ -1,7 +1,7 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import './globals.css';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata = {
   metadataBase: new URL('https://flixet.vercel.app'),
@@ -86,30 +86,7 @@ export default function RootLayout({ children }) {
           {children}
         </main>
         <Footer />
-      </body>
-    </html>
-  );
-}
-export default function RootLayout({ children }) {
-  return (
-    <html lang="en">
-      <head>
-        {/* font + meta links */}
-      </head>
-      <body style={{ paddingBottom: 0 }}>
-        <Header />
-        <main
-          className="container"
-          style={{
-            minHeight: '100vh',
-            paddingTop: '40px',
-            paddingBottom: '100px',
-          }}
-        >
-          {children}
-        </main>
-        <Footer />
-        <SpeedInsights />   {/* <= here, in layout.js */}
+        <SpeedInsights />
       </body>
     </html>
   );
