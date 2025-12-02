@@ -9,9 +9,9 @@ export const metadata = {
     'Stream movies and TV shows for free. No subscription required. Watch thousands of movies and series online.',
   keywords:
     'free movies, watch movies online, stream tv shows, free streaming, movies online',
-  authors: [{ name: 'Flixet ' }],
-  creator: 'Flixet ',
-  publisher: 'Flixet ',
+  authors: [{ name: 'Flixet' }],
+  creator: 'Flixet',
+  publisher: 'Flixet',
   robots: {
     index: true,
     follow: true,
@@ -27,8 +27,8 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://Flixet .com',
-    siteName: 'Flixet ',
+    url: 'https://flixet.vercel.app',
+    siteName: 'Flixet',
     title: 'Flixet - Watch Movies & TV Shows Free',
     description:
       'Stream thousands of movies and TV shows for free. No subscription required.',
@@ -68,7 +68,7 @@ export default function RootLayout({ children }) {
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
           rel="stylesheet"
         />
       </head>
