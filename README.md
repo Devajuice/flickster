@@ -72,10 +72,10 @@ This project is deployed on Vercel. To deploy your own:
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_TMDB_API_KEY` | Your TMDb API key |
-| `NEXT_PUBLIC_SITE_URL` | Your deployed site URL |
+| Variable                   | Description            |
+| -------------------------- | ---------------------- |
+| `NEXT_PUBLIC_TMDB_API_KEY` | Your TMDb API key      |
+| `NEXT_PUBLIC_SITE_URL`     | Your deployed site URL |
 
 ## License
 
@@ -83,4 +83,4 @@ This project is for educational purposes only.
 
 ## Disclaimer
 
-Flickster does not host any video content. All videos are embedded from third-party sources.
+Flixetdoes not host any video content. All videos are embedded from third-party sources.

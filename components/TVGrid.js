@@ -1,69 +1,56 @@
 'use client';
 import TVCard from './TVCard';
 
-export default function TVGrid({ shows, title }) {
-  if (!shows || shows.length === 0) return null;
-
+export default function TVGrid({ shows }) {
   return (
     <>
       <style jsx>{`
-        .section {
-          margin-bottom: 40px;
-          width: 100%;
-        }
-
-        .section-title {
-          font-size: 20px;
-          margin-bottom: 15px;
-          font-weight: bold;
-          padding: 0 5px;
-        }
-
-        .tv-grid {
+        .grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
-          width: 100%;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 20px;
+          padding: 20px 0;
         }
 
-        @media (min-width: 640px) {
-          .tv-grid {
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-          }
-
-          .section-title {
-            font-size: 26px;
+        @media (max-width: 768px) {
+          .grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: 15px 0;
           }
         }
 
-        @media (min-width: 1024px) {
-          .tv-grid {
-            grid-template-columns: repeat(5, 1fr);
-            gap: 18px;
-          }
-
-          .section-title {
-            font-size: 32px;
+        @media (max-width: 480px) {
+          .grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 12px 0;
           }
         }
 
-        @media (min-width: 1280px) {
-          .tv-grid {
-            grid-template-columns: repeat(6, 1fr);
-            gap: 20px;
+        @media (min-width: 1200px) {
+          .grid {
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 25px;
           }
         }
       `}</style>
 
-      <section className="section">
-        {title && <h2 className="section-title">{title}</h2>}
-        <div className="tv-grid">
-          {shows.map((show) => (
-            <TVCard key={show.id} show={show} />
-          ))}
-        </div>
-      </section>
+      <div className="grid">
+        {Array.isArray(shows) && shows.length > 0 ? (
+          shows.map((show) => <TVCard key={show.id} show={show} />)
+        ) : (
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              textAlign: 'center',
+              padding: '40px',
+            }}
+          >
+            No TV shows available
+          </div>
+        )}
+      </div>
     </>
   );
 }

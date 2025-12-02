@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { AlertTriangle } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -64,6 +65,9 @@ export default function Footer() {
           color: var(--accent);
           margin-bottom: 10px;
           font-size: 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
         .disclaimer-text {
@@ -98,10 +102,13 @@ export default function Footer() {
       <footer className="footer">
         <div className="container">
           <div className="disclaimer">
-            <div className="disclaimer-title">⚠️ Important Disclaimer</div>
+            <div className="disclaimer-title">
+              <AlertTriangle size={20} />
+              Important Disclaimer
+            </div>
             <p className="disclaimer-text">
-              Flickster does not host, store, or distribute any video content.
-              All videos are embedded from third-party sources. We do not claim
+              Flixetdoes not host, store, or distribute any video content. All
+              videos are embedded from third-party sources. We do not claim
               ownership of any content displayed on this website. All
               trademarks, logos, and brand names are the property of their
               respective owners. If you believe any content infringes on your
@@ -113,7 +120,7 @@ export default function Footer() {
             <div className="footer-section">
               <h3>About Flickster</h3>
               <p>
-                Flickster is a free streaming aggregator that provides links to
+                Flixetis a free streaming aggregator that provides links to
                 movies and TV shows from various third-party sources. We do not
                 upload or host any files on our servers.
               </p>

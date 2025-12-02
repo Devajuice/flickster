@@ -3,8 +3,8 @@ import Footer from '@/components/Footer';
 import './globals.css';
 
 export const metadata = {
-  metadataBase: new URL('https://flickstered.vercel.app/'), // Replace with your actual domain when deployed
-  title: 'Flickster - Watch Movies Free',
+  metadataBase: new URL('https://flickster.com'),
+  title: 'Flixet- Watch Movies Free',
   description:
     'Stream movies and TV shows for free. No subscription required. Watch thousands of movies and series online.',
   keywords:
@@ -27,9 +27,9 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://flickstered.vercel.app/',
+    url: 'https://flickster.com',
     siteName: 'Flickster',
-    title: 'Flickster - Watch Movies & TV Shows Free',
+    title: 'Flixet- Watch Movies & TV Shows Free',
     description:
       'Stream thousands of movies and TV shows for free. No subscription required.',
     images: [
@@ -37,13 +37,13 @@ export const metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Flickster - Free Movie Streaming',
+        alt: 'Flixet- Free Movie Streaming',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Flickster - Watch Movies Free',
+    title: 'Flixet- Watch Movies Free',
     description:
       'Stream movies and TV shows for free. No subscription required.',
     images: ['/og-image.png'],
@@ -72,14 +72,14 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>
+      <body style={{ paddingBottom: 0 }}>
         <Header />
         <main
           className="container"
           style={{
             minHeight: '100vh',
             paddingTop: '40px',
-            paddingBottom: '40px',
+            paddingBottom: '100px',
           }}
         >
           {children}

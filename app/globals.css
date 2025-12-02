@@ -17,10 +17,17 @@
 body {
   background-color: var(--primary-bg);
   color: var(--text-primary);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Add padding for mobile bottom nav */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 70px;
+  }
 }
 
 a {

@@ -86,19 +86,18 @@ export default function TermsOfService() {
         <div className="section">
           <h2 className="section-title">1. Acceptance of Terms</h2>
           <p className="section-text">
-            By accessing and using Flickster ("the Website"), you accept and
-            agree to be bound by the terms and provisions of this agreement. If
-            you do not agree to these Terms of Service, please do not use the
-            Website.
+            By accessing and using Flixet("the Website"), you accept and agree
+            to be bound by the terms and provisions of this agreement. If you do
+            not agree to these Terms of Service, please do not use the Website.
           </p>
         </div>
 
         <div className="section">
           <h2 className="section-title">2. Description of Service</h2>
           <p className="section-text">
-            Flickster is a free online streaming aggregator that provides links
-            to movies and TV shows hosted on third-party platforms. We do not
-            host, upload, or store any video content on our servers.
+            Flixetis a free online streaming aggregator that provides links to
+            movies and TV shows hosted on third-party platforms. We do not host,
+            upload, or store any video content on our servers.
           </p>
         </div>
 
@@ -152,8 +151,8 @@ export default function TermsOfService() {
           <p className="section-text">
             All content, trademarks, and data on this Website are the property
             of their respective copyright holders. We respect intellectual
-            property rights and expect our users to do the same. Flickster does
-            not claim ownership of any content available through the Website.
+            property rights and expect our users to do the same. Flixetdoes not
+            claim ownership of any content available through the Website.
           </p>
         </div>
 
@@ -191,7 +190,7 @@ export default function TermsOfService() {
         <div className="section">
           <h2 className="section-title">8. Limitation of Liability</h2>
           <p className="section-text">
-            IN NO EVENT SHALL Flickster BE LIABLE FOR ANY DIRECT, INDIRECT,
+            IN NO EVENT SHALL FlixetBE LIABLE FOR ANY DIRECT, INDIRECT,
             INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES ARISING
             FROM YOUR USE OF THE WEBSITE OR THIRD-PARTY CONTENT.
           </p>
