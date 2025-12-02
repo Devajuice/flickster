@@ -1,6 +1,6 @@
 {
-  "name": "Flickster",
-  "short_name": "Flickster",
+  "name": "Flixet",
+  "short_name": "Flixet",
   "description": "Watch movies and TV shows for free",
   "start_url": "/",
   "display": "standalone",

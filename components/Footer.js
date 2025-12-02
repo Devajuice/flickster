@@ -118,7 +118,7 @@ export default function Footer() {
 
           <div className="footer-content">
             <div className="footer-section">
-              <h3>About Flickster</h3>
+              <h3>About Flixet</h3>
               <p>
                 Flixetis a free streaming aggregator that provides links to
                 movies and TV shows from various third-party sources. We do not
@@ -162,7 +162,7 @@ export default function Footer() {
           </div>
 
           <div className="footer-bottom">
-            <p>© {new Date().getFullYear()} Flickster. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Flixet. All rights reserved.</p>
             <div className="tmdb-credit">
               <span>Powered by</span>
               <a

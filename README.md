@@ -1,4 +1,4 @@
-# 🎬 Flickster
+# 🎬 Flixet
 
 A free movie and TV show streaming aggregator built with Next.js.
 
@@ -31,8 +31,8 @@ A free movie and TV show streaming aggregator built with Next.js.
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/flickster.git
-cd flickster
+git clone https://github.com/yourusername/Flixet.git
+cd Flixet
 ```
 
 2. Install dependencies:

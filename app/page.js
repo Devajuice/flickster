@@ -298,7 +298,7 @@ export default function HomePage() {
         viewport={{ once: true }}
       >
         <div className="info-section">
-          <h2 className="info-title">What is Flickster?</h2>
+          <h2 className="info-title">What is Flixet?</h2>
           <p className="info-text">
             Flixetis a free streaming aggregator that brings you unlimited
             access to thousands of movies and TV shows. We search and compile
@@ -405,7 +405,7 @@ export default function HomePage() {
       >
         <div className="stats-section">
           <h2 style={{ fontSize: '32px', marginBottom: '10px' }}>
-            Why Choose Flickster?
+            Why Choose Flixet?
           </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
             Join thousands of users enjoying free entertainment

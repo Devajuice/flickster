@@ -354,7 +354,7 @@ export default function Header() {
               transition={{ duration: 2, repeat: Infinity }}
             >
               <Film size={28} strokeWidth={2.5} style={{ flexShrink: 0 }} />
-              <span className="logo-text">Flickster</span>
+              <span className="logo-text">Flixet</span>
             </motion.span>
           </Link>
 

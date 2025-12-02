@@ -3,15 +3,15 @@ import Footer from '@/components/Footer';
 import './globals.css';
 
 export const metadata = {
-  metadataBase: new URL('https://flickster.com'),
+  metadataBase: new URL('https://Flixet.com'),
   title: 'Flixet- Watch Movies Free',
   description:
     'Stream movies and TV shows for free. No subscription required. Watch thousands of movies and series online.',
   keywords:
     'free movies, watch movies online, stream tv shows, free streaming, movies online',
-  authors: [{ name: 'Flickster' }],
-  creator: 'Flickster',
-  publisher: 'Flickster',
+  authors: [{ name: 'Flixet' }],
+  creator: 'Flixet',
+  publisher: 'Flixet',
   robots: {
     index: true,
     follow: true,
@@ -27,8 +27,8 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://flickster.com',
-    siteName: 'Flickster',
+    url: 'https://Flixet.com',
+    siteName: 'Flixet',
     title: 'Flixet- Watch Movies & TV Shows Free',
     description:
       'Stream thousands of movies and TV shows for free. No subscription required.',
