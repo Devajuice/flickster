@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { getImageUrl } from '@/lib/tmdb';
+import WatchlistButton from './WatchlistButton';
 
 export default function TVCard({ show }) {
   const router = useRouter();
@@ -57,6 +58,26 @@ export default function TVCard({ show }) {
           object-fit: cover;
           user-select: none;
           -webkit-user-drag: none;
+        }
+
+        .watchlist-overlay {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 2;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+
+        .card:hover .watchlist-overlay {
+          opacity: 1;
+        }
+
+        /* Mobile: always show on tap */
+        @media (hover: none) {
+          .watchlist-overlay {
+            opacity: 1;
+          }
         }
 
         .overlay {
@@ -149,6 +170,11 @@ export default function TVCard({ show }) {
           .meta {
             font-size: 9px;
           }
+
+          .watchlist-overlay {
+            top: 10px;
+            right: 10px;
+          }
         }
 
         @media (min-width: 640px) {
@@ -213,6 +239,23 @@ export default function TVCard({ show }) {
               loading="lazy"
               draggable="false"
             />
+
+            {/* UPDATED: Watchlist Button with both name and title */}
+            <div className="watchlist-overlay">
+              <WatchlistButton
+                item={{
+                  id: show.id,
+                  type: 'tv',
+                  name: show.name,
+                  title: show.name, // ADDED THIS LINE - ensures consistency
+                  poster_path: show.poster_path,
+                  vote_average: show.vote_average,
+                  first_air_date: show.first_air_date,
+                }}
+                variant="default"
+              />
+            </div>
+
             <div className="overlay">
               <div className="play-text">▶ Play</div>
             </div>

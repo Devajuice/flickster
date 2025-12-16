@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { getImageUrl } from '@/lib/tmdb';
+import WatchlistButton from './WatchlistButton'; // ADD THIS IMPORT
 
 export default function MovieCard({ movie }) {
   const router = useRouter();
@@ -57,6 +58,27 @@ export default function MovieCard({ movie }) {
           object-fit: cover;
           user-select: none;
           -webkit-user-drag: none;
+        }
+
+        /* ADD THIS: Watchlist button overlay */
+        .watchlist-overlay {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 2;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+
+        .card:hover .watchlist-overlay {
+          opacity: 1;
+        }
+
+        /* Mobile: always show on tap */
+        @media (hover: none) {
+          .watchlist-overlay {
+            opacity: 1;
+          }
         }
 
         .overlay {
@@ -149,6 +171,11 @@ export default function MovieCard({ movie }) {
           .meta {
             font-size: 9px;
           }
+
+          .watchlist-overlay {
+            top: 10px;
+            right: 10px;
+          }
         }
 
         @media (min-width: 640px) {
@@ -213,6 +240,23 @@ export default function MovieCard({ movie }) {
               loading="lazy"
               draggable="false"
             />
+
+            {/* ADD THIS: Watchlist Button */}
+            <div className="watchlist-overlay">
+              <WatchlistButton
+                item={{
+                  id: movie.id,
+                  type: 'movie',
+                  title: movie.title,
+                  name: movie.title, // ADD THIS LINE for consistency
+                  poster_path: movie.poster_path,
+                  vote_average: movie.vote_average,
+                  release_date: movie.release_date,
+                }}
+                variant="default"
+              />
+            </div>
+
             <div className="overlay">
               <div className="play-text">▶ Play</div>
             </div>

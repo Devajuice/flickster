@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import './globals.css';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/react';
+import { WatchlistProvider } from '@/context/WatchlistContext'; // ADD THIS IMPORT
 
 export const metadata = {
   metadataBase: new URL('https://flixet.vercel.app'),
@@ -75,20 +76,25 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body style={{ paddingBottom: 0 }}>
-        <Header />
-        <main
-          className="container"
-          style={{
-            minHeight: '100vh',
-            paddingTop: '40px',
-            paddingBottom: '100px',
-          }}
-        >
-          {children}
-        </main>
-        <Footer />
-        <SpeedInsights />
-        <Analytics />
+        <WatchlistProvider>
+          {' '}
+          {/* WRAP EVERYTHING IN WATCHLIST PROVIDER */}
+          <Header />
+          <main
+            className="container"
+            style={{
+              minHeight: '100vh',
+              paddingTop: '40px',
+              paddingBottom: '100px',
+            }}
+          >
+            {children}
+          </main>
+          <Footer />
+          <SpeedInsights />
+          <Analytics />
+        </WatchlistProvider>{' '}
+        {/* CLOSE THE PROVIDER */}
       </body>
     </html>
   );

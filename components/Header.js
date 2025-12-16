@@ -8,7 +8,8 @@ import {
   Home,
   Tv,
   ChevronDown,
-  Sparkles, // For Anime icon
+  Sparkles,
+  Bookmark, // ADD THIS for Watchlist icon
 } from 'lucide-react';
 import SearchBar from './SearchBar';
 
@@ -410,9 +411,13 @@ export default function Header() {
               </Link>
             </div>
 
-            {/* NEW: Anime Link */}
             <Link href="/anime" style={styles.navLink}>
               Anime
+            </Link>
+
+            {/* ADD THIS: Watchlist Link */}
+            <Link href="/watchlist" style={styles.navLink}>
+              Watchlist
             </Link>
 
             <motion.button
@@ -550,13 +555,21 @@ export default function Header() {
           <Film size={24} color="#ffffff" />
         </Link>
 
-        {/* NEW: Anime Icon for Mobile */}
         <Link href="/anime" className="bottom-nav-item" aria-label="Anime">
           <Sparkles size={24} color="#ffffff" />
         </Link>
 
         <Link href="/tv" className="bottom-nav-item" aria-label="TV Shows">
           <Tv size={24} color="#ffffff" />
+        </Link>
+
+        {/* ADD THIS: Watchlist Icon */}
+        <Link
+          href="/watchlist"
+          className="bottom-nav-item"
+          aria-label="Watchlist"
+        >
+          <Bookmark size={24} color="#ffffff" />
         </Link>
 
         <button
