@@ -1,7 +1,7 @@
 {
   "name": "Flixet ",
   "short_name": "Flixet ",
-  "description": "Watch movies and TV shows for free",
+  "description": "Watch Movies, TV Shows and Anime for free",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f0f",

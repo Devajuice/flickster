@@ -81,7 +81,7 @@ export default function PrivacyPolicy() {
         transition={{ duration: 0.6 }}
       >
         <h1 className="privacy-title">Privacy Policy</h1>
-        <p className="last-updated">Last Updated: December 1, 2025</p>
+        <p className="last-updated">Last Updated: December 16, 2025</p>
 
         <div className="section">
           <h2 className="section-title">1. Information We Collect</h2>
@@ -189,7 +189,7 @@ export default function PrivacyPolicy() {
           <h2 className="section-title">9. Contact Us</h2>
           <p className="section-text">
             If you have questions about this Privacy Policy, please contact us
-            through the information provided on our website.
+            at <strong>devajuice@zohomail.in</strong>.
           </p>
         </div>
       </motion.div>
