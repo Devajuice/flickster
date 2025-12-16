@@ -19,7 +19,7 @@ A modern, free movie and TV show streaming aggregator built with Next.js. Stream
 
 - [ ] Continue Watching
 - [ ] Infinite Scroll
-- [ ] Comming Soon Section
+- [ ] Coming Soon Section
 - [ ] Performance Optimizations
 - [ ] Random Movie Picker
 - [ ] Advanced Filters
