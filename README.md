@@ -77,7 +77,7 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 📁 Project Structure
 
-```
+```bash
 Flixet/
 ├── app/
 │ ├── movie/[id]/ # Movie detail pages
