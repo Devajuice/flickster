@@ -22,8 +22,7 @@ A modern, free movie and TV show streaming aggregator built with Next.js. Stream
 - [x] ~~Coming Soon Section~~
 - [ ] Performance Optimizations
 - [ ] Random Movie Picker
-- [ ] Advanced Filters
-- [ ] Changeable Grid Sizes
+- [x] Advanced Filters
 
 ## 🛠️ Tech Stack
 
