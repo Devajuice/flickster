@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react';
+import { useSearchParams } from 'next/navigation'; // ← ADD THIS
 import { motion } from 'framer-motion';
 import {
   Star,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import WatchlistButton from '@/components/WatchlistButton';
+import { useContinueWatching } from '@/context/ContinueWatchingContext';
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
@@ -20,12 +22,21 @@ export default function TVShowDetails({ params }) {
   const unwrappedParams = use(params);
   const showId = unwrappedParams.id;
 
+  // ========== ADD THIS: Read URL parameters ==========
+  const searchParams = useSearchParams();
+  const urlSeason = searchParams.get('season');
+  const urlEpisode = searchParams.get('episode');
+  // ===================================================
+
   const [show, setShow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPlayer, setShowPlayer] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [selectedEpisode, setSelectedEpisode] = useState(1);
   const [seasonData, setSeasonData] = useState(null);
+
+  const { addToContinueWatching } = useContinueWatching();
+  const hasAddedToWatching = useRef(false);
 
   useEffect(() => {
     fetchShowDetails();
@@ -37,6 +48,59 @@ export default function TVShowDetails({ params }) {
     }
   }, [selectedSeason, show]);
 
+  // ========== ADD THIS: Set season/episode from URL when show loads ==========
+  useEffect(() => {
+    if (show && urlSeason && urlEpisode) {
+      const seasonNum = parseInt(urlSeason);
+      const episodeNum = parseInt(urlEpisode);
+
+      // Check if the season exists in the show
+      const seasonExists = show.seasons?.some(
+        (s) => s.season_number === seasonNum
+      );
+
+      if (seasonExists) {
+        setSelectedSeason(seasonNum);
+        setSelectedEpisode(episodeNum);
+      }
+    }
+  }, [show, urlSeason, urlEpisode]);
+  // ===========================================================================
+
+  useEffect(() => {
+    if (showPlayer && show && !hasAddedToWatching.current) {
+      const currentEpisode = seasonData?.episodes?.find(
+        (ep) => ep.episode_number === selectedEpisode
+      );
+      const episodeRuntime =
+        currentEpisode?.runtime || show.episode_run_time?.[0] || 45;
+
+      addToContinueWatching({
+        id: show.id,
+        type: 'tv',
+        name: show.name,
+        poster_path: show.poster_path,
+        backdrop_path: show.backdrop_path,
+        season: selectedSeason,
+        episode: selectedEpisode,
+        runtime: episodeRuntime,
+        progress: 15,
+      });
+      hasAddedToWatching.current = true;
+    }
+
+    if (!showPlayer) {
+      hasAddedToWatching.current = false;
+    }
+  }, [
+    showPlayer,
+    show,
+    selectedSeason,
+    selectedEpisode,
+    seasonData,
+    addToContinueWatching,
+  ]);
+
   const fetchShowDetails = async () => {
     try {
       const response = await fetch(
@@ -44,11 +108,14 @@ export default function TVShowDetails({ params }) {
       );
       const data = await response.json();
       setShow(data);
-      if (data.seasons && data.seasons.length > 0) {
+
+      // ========== UPDATE THIS: Don't auto-select season if URL params exist ==========
+      if (!urlSeason && data.seasons && data.seasons.length > 0) {
         const firstSeason =
           data.seasons.find((s) => s.season_number > 0) || data.seasons[0];
         setSelectedSeason(firstSeason.season_number);
       }
+      // ================================================================================
     } catch (error) {
       console.error('Error fetching TV show details:', error);
     } finally {
@@ -63,7 +130,12 @@ export default function TVShowDetails({ params }) {
       );
       const data = await response.json();
       setSeasonData(data);
-      setSelectedEpisode(1);
+
+      // ========== UPDATE THIS: Don't reset episode if URL param exists ==========
+      if (!urlEpisode) {
+        setSelectedEpisode(1);
+      }
+      // ===========================================================================
     } catch (error) {
       console.error('Error fetching season details:', error);
     }
@@ -820,7 +892,6 @@ const styles = {
     marginBottom: '15px',
     color: 'var(--text-primary)',
   },
-  // Episode List Styles - FIXED
   episodeList: {
     display: 'flex',
     flexDirection: 'column',

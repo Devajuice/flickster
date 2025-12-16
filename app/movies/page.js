@@ -1,64 +1,128 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import MovieCard from '@/components/MovieCard';
+import ComingSoon from '@/components/ComingSoon';
+import AdvancedFilters from '@/components/AdvancedFilters';
 import { motion } from 'framer-motion';
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
-// Genre mapping
-const GENRE_MAP = {
-  action: 28,
-  comedy: 35,
-  drama: 18,
-  horror: 27,
-  'sci-fi': 878,
-  thriller: 53,
-  romance: 10749,
-  animation: 16,
-};
-
-// Separate component that uses useSearchParams
 function MoviesContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const genreParam = searchParams.get('genre');
 
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [activeFilters, setActiveFilters] = useState({});
 
+  const observerTarget = useRef(null);
+
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
+    setMovies([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    fetchMovies(1, true, filters);
+  };
+
+  // Reset when genre changes
   useEffect(() => {
-    fetchMovies(1);
+    setMovies([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    setActiveFilters({});
+    fetchMovies(1, true);
   }, [genreParam]);
 
-  const fetchMovies = async (page) => {
-    setLoading(true);
-    try {
-      let url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&page=${page}&sort_by=popularity.desc`;
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          fetchMovies(currentPage + 1, false, activeFilters);
+        }
+      },
+      { threshold: 0.1 }
+    );
 
-      if (genreParam && GENRE_MAP[genreParam]) {
-        url += `&with_genres=${GENRE_MAP[genreParam]}`;
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [hasMore, loading, loadingMore, currentPage, activeFilters]);
+
+  const fetchMovies = async (page, reset = false, filters = {}) => {
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
+    try {
+      // Build URL with filters
+      let url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&page=${page}`;
+
+      // Add filters to URL
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {
+          url += `&${key}=${value}`;
+        }
+      });
+
+      // Add genre from URL params if present
+      if (genreParam && !filters.with_genres) {
+        const GENRE_MAP = {
+          action: 28,
+          comedy: 35,
+          drama: 18,
+          horror: 27,
+          'sci-fi': 878,
+          thriller: 53,
+          romance: 10749,
+          animation: 16,
+        };
+        if (GENRE_MAP[genreParam]) {
+          url += `&with_genres=${GENRE_MAP[genreParam]}`;
+        }
+      }
+
+      // Default sort if not specified
+      if (!filters.sort_by) {
+        url += '&sort_by=popularity.desc';
       }
 
       const response = await fetch(url);
       const data = await response.json();
 
-      setMovies(data.results || []);
-      setTotalPages(data.total_pages || 1);
+      if (reset) {
+        setMovies(data.results || []);
+      } else {
+        setMovies((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newMovies = (data.results || []).filter(
+            (movie) => !existingIds.has(movie.id)
+          );
+          return [...prev, ...newMovies];
+        });
+      }
+
       setCurrentPage(page);
+      setHasMore(page < data.total_pages && page < 500);
     } catch (error) {
       console.error('Error fetching movies:', error);
-      setMovies([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      fetchMovies(newPage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setLoadingMore(false);
     }
   };
 
@@ -71,7 +135,7 @@ function MoviesContent() {
     return `${genreName} Movies`;
   };
 
-  if (loading && currentPage === 1) {
+  if (loading) {
     return (
       <>
         <style jsx>{`
@@ -104,47 +168,60 @@ function MoviesContent() {
           }
         }
 
+        /* ========== FIXED MOVIE GRID ========== */
         .movie-grid {
           display: grid !important;
-          grid-template-columns: repeat(2, 1fr) !important;
-          gap: 10px !important;
+          grid-template-columns: repeat(
+            auto-fill,
+            minmax(180px, 1fr)
+          ) !important;
+          gap: 20px !important;
           margin-bottom: 40px !important;
-          padding: 0 10px !important;
         }
 
-        @media (min-width: 480px) {
+        /* ========== SIMPLIFIED FILTER TOOLBAR ========== */
+        .filters-toolbar {
+          display: flex;
+          justify-content: flex-start;
+          align-items: center;
+          margin-bottom: 40px;
+          padding: 15px 20px;
+          background: rgba(26, 26, 26, 0.6);
+          backdrop-filter: blur(10px);
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          min-height: 60px;
+        }
+
+        @media (min-width: 769px) {
+          .filters-toolbar {
+            padding: 18px 24px;
+            min-height: 64px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .filters-toolbar {
+            padding: 15px;
+          }
+
           .movie-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
           }
         }
 
-        @media (min-width: 640px) {
-          .movie-grid {
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 15px !important;
+        @media (max-width: 480px) {
+          .filters-toolbar {
+            padding: 12px;
           }
-        }
 
-        @media (min-width: 1024px) {
           .movie-grid {
-            grid-template-columns: repeat(
-              auto-fill,
-              minmax(200px, 1fr)
-            ) !important;
-            gap: 25px !important;
-            padding: 0 !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
           }
         }
-
-        @media (min-width: 1200px) {
-          .movie-grid {
-            grid-template-columns: repeat(
-              auto-fill,
-              minmax(220px, 1fr)
-            ) !important;
-            gap: 30px !important;
-          }
-        }
+        /* ============================================== */
       `}</style>
 
       <motion.div
@@ -162,9 +239,25 @@ function MoviesContent() {
           )}
         </div>
 
+        {!genreParam && (
+          <div style={{ marginBottom: '50px' }}>
+            <ComingSoon type="movie" />
+          </div>
+        )}
+
+        {/* ========== SIMPLIFIED: Just Filters ========== */}
+        <div className="filters-toolbar">
+          <AdvancedFilters
+            type="movie"
+            onFilterChange={handleFilterChange}
+            initialFilters={activeFilters}
+          />
+        </div>
+        {/* ============================================== */}
+
         {!Array.isArray(movies) || movies.length === 0 ? (
           <div style={styles.noResults}>
-            <p>No movies found.</p>
+            <p>No movies found with these filters.</p>
           </div>
         ) : (
           <>
@@ -174,35 +267,16 @@ function MoviesContent() {
               ))}
             </div>
 
-            {/* Pagination */}
-            <div style={styles.pagination}>
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                style={{
-                  ...styles.paginationButton,
-                  ...(currentPage === 1 ? styles.disabledButton : {}),
-                }}
-              >
-                Previous
-              </button>
-
-              <span style={styles.pageInfo}>
-                Page {currentPage} of {totalPages > 500 ? 500 : totalPages}
-              </span>
-
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage >= totalPages || currentPage >= 500}
-                style={{
-                  ...styles.paginationButton,
-                  ...(currentPage >= totalPages || currentPage >= 500
-                    ? styles.disabledButton
-                    : {}),
-                }}
-              >
-                Next
-              </button>
+            <div ref={observerTarget} style={styles.observer}>
+              {loadingMore && (
+                <div style={styles.loadingMore}>
+                  <div style={styles.spinnerSmall}></div>
+                  <p>Loading more movies...</p>
+                </div>
+              )}
+              {!hasMore && movies.length > 0 && (
+                <p style={styles.endMessage}>You've reached the end!</p>
+              )}
             </div>
           </>
         )}
@@ -211,7 +285,6 @@ function MoviesContent() {
   );
 }
 
-// Main page component with Suspense wrapper
 export default function MoviesPage() {
   return (
     <Suspense
@@ -270,34 +343,30 @@ const styles = {
     fontSize: '18px',
     color: 'var(--text-secondary)',
   },
-  pagination: {
+  observer: {
+    minHeight: '100px',
     display: 'flex',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: '20px',
+    justifyContent: 'center',
     marginTop: '40px',
-    marginBottom: '40px',
-    padding: '0 10px',
   },
-  paginationButton: {
-    padding: '12px 30px',
-    backgroundColor: 'var(--accent)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
+  loadingMore: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '15px',
   },
-  disabledButton: {
-    backgroundColor: 'var(--card-bg)',
+  spinnerSmall: {
+    width: '35px',
+    height: '35px',
+    border: '3px solid rgba(229, 9, 20, 0.1)',
+    borderTop: '3px solid var(--accent)',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  endMessage: {
+    textAlign: 'center',
     color: 'var(--text-secondary)',
-    cursor: 'not-allowed',
-    opacity: 0.5,
-  },
-  pageInfo: {
     fontSize: '16px',
-    color: 'var(--text-secondary)',
   },
 };

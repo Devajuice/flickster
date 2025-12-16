@@ -1,7 +1,9 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import TVGrid from '@/components/TVGrid';
+import ComingSoon from '@/components/ComingSoon';
+import AdvancedFilters from '@/components/AdvancedFilters';
 import { motion } from 'framer-motion';
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
@@ -24,39 +26,114 @@ function TVContent() {
 
   const [shows, setShows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [activeFilters, setActiveFilters] = useState({});
 
+  const observerTarget = useRef(null);
+
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
+    setShows([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    fetchShows(1, true, filters);
+  };
+
+  // Reset when genre changes
   useEffect(() => {
-    fetchShows(1);
+    setShows([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    setActiveFilters({});
+    fetchShows(1, true);
   }, [genreParam]);
 
-  const fetchShows = async (page) => {
-    setLoading(true);
-    try {
-      let url = `https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=en-US&sort_by=popularity.desc&page=${page}`;
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          fetchShows(currentPage + 1, false, activeFilters);
+        }
+      },
+      { threshold: 0.1 }
+    );
 
-      if (genreParam && TV_GENRE_MAP[genreParam]) {
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [hasMore, loading, loadingMore, currentPage, activeFilters]);
+
+  const fetchShows = async (page, reset = false, filters = {}) => {
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
+    try {
+      // Build URL with filters
+      let url = `https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&page=${page}`;
+
+      // Add filters to URL (convert movie date fields to TV date fields)
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {
+          // Convert movie date fields to TV date fields
+          if (key === 'primary_release_date.gte') {
+            url += `&first_air_date.gte=${value}`;
+          } else if (key === 'primary_release_date.lte') {
+            url += `&first_air_date.lte=${value}`;
+          } else if (key === 'with_runtime_gte') {
+            url += `&with_runtime.gte=${value}`;
+          } else if (key === 'with_runtime_lte') {
+            url += `&with_runtime.lte=${value}`;
+          } else {
+            url += `&${key}=${value}`;
+          }
+        }
+      });
+
+      // Add genre from URL params if present and no genre filter
+      if (genreParam && TV_GENRE_MAP[genreParam] && !filters.with_genres) {
         url += `&with_genres=${TV_GENRE_MAP[genreParam]}`;
+      }
+
+      // Default sort if not specified
+      if (!filters.sort_by) {
+        url += '&sort_by=popularity.desc';
       }
 
       const response = await fetch(url);
       const data = await response.json();
-      setShows(data.results || []);
-      setTotalPages(data.total_pages || 1);
+
+      if (reset) {
+        setShows(data.results || []);
+      } else {
+        // Remove duplicates
+        setShows((prev) => {
+          const existingIds = new Set(prev.map((s) => s.id));
+          const newShows = (data.results || []).filter(
+            (show) => !existingIds.has(show.id)
+          );
+          return [...prev, ...newShows];
+        });
+      }
+
       setCurrentPage(page);
+      setHasMore(page < data.total_pages && page < 500);
     } catch (error) {
       console.error('Error fetching TV shows:', error);
-      setShows([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      fetchShows(newPage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setLoadingMore(false);
     }
   };
 
@@ -69,7 +146,7 @@ function TVContent() {
     return `${name} TV Shows`;
   };
 
-  if (loading && currentPage === 1) {
+  if (loading) {
     return (
       <>
         <style jsx>{`
@@ -90,73 +167,69 @@ function TVContent() {
     );
   }
 
-  if (!shows.length) {
-    return (
-      <div style={styles.loading}>
-        <p>No TV shows found.</p>
-      </div>
-    );
-  }
-
   return (
     <>
       <style jsx>{`
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* ========== FIXED TV GRID ========== */
         .tv-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-          gap: 30px;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 20px;
           margin-bottom: 60px;
         }
 
+        /* ========== SIMPLIFIED FILTER TOOLBAR ========== */
+        .filters-toolbar {
+          display: flex;
+          justify-content: flex-start;
+          align-items: center;
+          margin-bottom: 40px;
+          padding: 15px 20px;
+          background: rgba(26, 26, 26, 0.6);
+          backdrop-filter: blur(10px);
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          min-height: 60px;
+        }
+
+        @media (min-width: 769px) {
+          .filters-toolbar {
+            padding: 18px 24px;
+            min-height: 64px;
+          }
+        }
+
         @media (max-width: 768px) {
+          .filters-toolbar {
+            padding: 15px;
+          }
+
           .tv-grid {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
           }
         }
 
-        @media (max-width: 400px) {
+        @media (max-width: 480px) {
+          .filters-toolbar {
+            padding: 12px;
+          }
+
           .tv-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
           }
         }
-
-        @media (min-width: 1200px) {
-          .tv-grid {
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 35px;
-          }
-        }
-
-        .page-button {
-          padding: 12px 24px;
-          border-radius: 8px;
-          border: none;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          min-width: 120px;
-        }
-
-        .page-button:not(:disabled) {
-          background: #e50914;
-          color: white;
-        }
-
-        .page-button:not(:disabled):hover {
-          background: #f40612;
-          transform: scale(1.05);
-        }
-
-        .page-button:disabled {
-          background: rgba(50, 50, 50, 0.8);
-          color: rgba(150, 150, 150, 0.7);
-          cursor: not-allowed;
-        }
+        /* ============================================== */
       `}</style>
 
       <motion.div
@@ -165,31 +238,53 @@ function TVContent() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 style={styles.title}>{getGenreTitle()}</h1>
-        <TVGrid shows={shows} />
-
-        {/* Pagination controls */}
-        <div style={styles.pagination}>
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1 || loading}
-            className="page-button"
-          >
-            Previous
-          </button>
-
-          <span style={styles.pageInfo}>
-            Page {currentPage} of {totalPages}
-          </span>
-
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages || loading}
-            className="page-button"
-          >
-            Next
-          </button>
+        <div style={styles.header}>
+          <h1 style={styles.title}>{getGenreTitle()}</h1>
+          {genreParam && (
+            <p style={styles.subtitle}>
+              Discover {genreParam.replace('-', ' ')} TV shows
+            </p>
+          )}
         </div>
+
+        {!genreParam && (
+          <div style={{ marginBottom: '50px' }}>
+            <ComingSoon type="tv" />
+          </div>
+        )}
+
+        {/* ========== SIMPLIFIED: Just Filters ========== */}
+        <div className="filters-toolbar">
+          <AdvancedFilters
+            type="tv"
+            onFilterChange={handleFilterChange}
+            initialFilters={activeFilters}
+          />
+        </div>
+        {/* ============================================== */}
+
+        {!Array.isArray(shows) || shows.length === 0 ? (
+          <div style={styles.noResults}>
+            <p>No TV shows found with these filters.</p>
+          </div>
+        ) : (
+          <>
+            <TVGrid shows={shows} />
+
+            {/* Infinite Scroll Trigger */}
+            <div ref={observerTarget} style={styles.observer}>
+              {loadingMore && (
+                <div style={styles.loadingMore}>
+                  <div style={styles.spinnerSmall}></div>
+                  <p>Loading more shows...</p>
+                </div>
+              )}
+              {!hasMore && shows.length > 0 && (
+                <p style={styles.endMessage}>You've reached the end!</p>
+              )}
+            </div>
+          </>
+        )}
       </motion.div>
     </>
   );
@@ -253,34 +348,30 @@ const styles = {
     fontSize: '18px',
     color: 'var(--text-secondary)',
   },
-  pagination: {
+  observer: {
+    minHeight: '100px',
     display: 'flex',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: '20px',
+    justifyContent: 'center',
     marginTop: '40px',
-    marginBottom: '40px',
-    padding: '0 10px',
   },
-  paginationButton: {
-    padding: '12px 30px',
-    backgroundColor: 'var(--accent)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
+  loadingMore: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '15px',
   },
-  disabledButton: {
-    backgroundColor: 'var(--card-bg)',
+  spinnerSmall: {
+    width: '35px',
+    height: '35px',
+    border: '3px solid rgba(229, 9, 20, 0.1)',
+    borderTop: '3px solid var(--accent)',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+  },
+  endMessage: {
+    textAlign: 'center',
     color: 'var(--text-secondary)',
-    cursor: 'not-allowed',
-    opacity: 0.5,
-  },
-  pageInfo: {
     fontSize: '16px',
-    color: 'var(--text-secondary)',
   },
 };

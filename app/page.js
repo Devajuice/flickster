@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   ArrowRight,
 } from 'lucide-react';
+import ContinueWatchingSection from '@/components/ContinueWatchingSection';
 
 export default function HomePage() {
   return (
@@ -289,7 +290,9 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* Rest of the sections remain the same */}
+      {/* Continue Watching Section */}
+      <ContinueWatchingSection />
+
       {/* What is Flixet Section */}
       <motion.section
         initial={{ opacity: 0, y: 30 }}
@@ -301,9 +304,10 @@ export default function HomePage() {
           <h2 className="info-title">What is Flixet ?</h2>
           <p className="info-text">
             Flixet is a free streaming aggregator that brings you unlimited
-            access to thousands of Movies, TV shows and Anime. We search and compile
-            content from various third-party streaming sources, making it easy
-            for you to find and watch your favorite entertainment in one place.
+            access to thousands of Movies, TV shows and Anime. We search and
+            compile content from various third-party streaming sources, making
+            it easy for you to find and watch your favorite entertainment in one
+            place.
           </p>
           <p className="info-text">
             Unlike traditional streaming platforms, Flixet doesn't require any
@@ -345,8 +349,8 @@ export default function HomePage() {
             </div>
             <h3 className="feature-title">Huge Library</h3>
             <p className="feature-description">
-              Access thousands of Movies,TV Shows and Anime from various genres. New
-              content added regularly.
+              Access thousands of Movies,TV Shows and Anime from various genres.
+              New content added regularly.
             </p>
           </motion.div>
 
@@ -452,8 +456,9 @@ export default function HomePage() {
             switch to another server.
           </p>
           <p className="info-text">
-            <strong>4. Enjoy:</strong> Sit back and enjoy your Movie, TV show or Anime.
-            For TV shows and Anime, you can easily select different seasons and episodes.
+            <strong>4. Enjoy:</strong> Sit back and enjoy your Movie, TV show or
+            Anime. For TV shows and Anime, you can easily select different
+            seasons and episodes.
           </p>
         </div>
       </motion.section>

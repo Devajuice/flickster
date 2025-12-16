@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation'; // ← ADD THIS
 import {
   Film,
   Search as SearchIcon,
@@ -9,11 +10,12 @@ import {
   Tv,
   ChevronDown,
   Sparkles,
-  Bookmark, // ADD THIS for Watchlist icon
+  Bookmark,
 } from 'lucide-react';
 import SearchBar from './SearchBar';
 
 export default function Header() {
+  const pathname = usePathname(); // ← ADD THIS
   const [showSearch, setShowSearch] = useState(false);
   const [showMoviesMenu, setShowMoviesMenu] = useState(false);
   const [showTVMenu, setShowTVMenu] = useState(false);
@@ -228,6 +230,7 @@ export default function Header() {
           background-color: rgba(229, 9, 20, 0.1);
         }
 
+        /* ========== UPDATED MOBILE NAV STYLES ========== */
         .bottom-nav {
           display: none;
           position: fixed;
@@ -243,45 +246,70 @@ export default function Header() {
           backdrop-filter: blur(15px);
           -webkit-backdrop-filter: blur(15px);
           border-top: 1px solid rgba(229, 9, 20, 0.3);
-          padding: 12px 0;
-          padding-bottom: max(12px, env(safe-area-inset-bottom));
-          justify-content: space-evenly;
-          align-items: center;
+          padding: 8px 0;
+          padding-bottom: max(8px, env(safe-area-inset-bottom));
+          justify-content: space-around;
+          align-items: stretch; /* ← Changed to stretch for better alignment */
           z-index: 9999;
           box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.8);
         }
 
         .bottom-nav-item {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 56px;
-          height: 40px;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important; /* ← Centers horizontally */
+          justify-content: center !important; /* ← Centers vertically */
+          gap: 4px !important;
+          flex: 1; /* ← Equal width for all items */
+          max-width: 80px; /* ← Limit max width */
+          padding: 6px 4px;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
           text-decoration: none;
-          color: rgba(255, 255, 255, 0.8);
+          color: rgba(255, 255, 255, 0.7);
           background: transparent;
           border: none;
           border-radius: 8px;
+          position: relative;
         }
 
-        .bottom-nav-item:hover,
         .bottom-nav-item:active {
-          color: #e50914;
+          transform: scale(0.95);
           background-color: rgba(229, 9, 20, 0.1);
-          transform: scale(1.1);
+        }
+
+        .bottom-nav-item.active {
+          color: #e50914 !important;
+        }
+
+        .bottom-nav-item.active svg {
+          color: #e50914 !important;
+          stroke: #e50914 !important;
         }
 
         .bottom-nav-item svg {
           flex-shrink: 0;
           stroke-width: 2;
-          color: #ffffff;
+          width: 24px;
+          height: 24px;
+          transition: all 0.2s ease;
+          display: block;
+          margin: 0 auto; /* ← Center the icon */
         }
-        .bottom-nav-search-icon {
-          position: relative;
-          top: -2px;
+
+        .bottom-nav-label {
+          font-size: 10px;
+          font-weight: 500;
+          white-space: nowrap;
+          line-height: 1.2;
+          text-align: center;
+          display: block;
+          width: 100%;
+          margin: 0; /* ← Remove any margin */
+          padding: 0; /* ← Remove any padding */
         }
+
+        /* ============================================== */
 
         .search-bar-wrapper {
           max-width: 600px;
@@ -296,18 +324,18 @@ export default function Header() {
           }
 
           .bottom-nav {
-            display: none !important; /* hide bottom bar on desktop */
+            display: none !important;
           }
         }
 
         /* Mobile only */
         @media (max-width: 768px) {
           .desktop-nav {
-            display: none !important; /* hide top nav on mobile */
+            display: none !important;
           }
 
           .bottom-nav {
-            display: flex !important; /* show bottom bar on mobile */
+            display: flex !important;
           }
 
           .logo-text {
@@ -322,18 +350,23 @@ export default function Header() {
 
         @media (max-width: 400px) {
           .bottom-nav {
-            padding: 8px 0;
-            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            padding: 6px 0;
+            padding-bottom: max(6px, env(safe-area-inset-bottom));
           }
 
           .bottom-nav-item {
-            padding: 8px 12px;
-            min-width: 44px;
+            padding: 5px 2px;
+            max-width: 70px;
+            gap: 3px !important;
           }
 
           .bottom-nav-item svg {
             width: 22px;
             height: 22px;
+          }
+
+          .bottom-nav-label {
+            font-size: 9px;
           }
         }
 
@@ -347,11 +380,11 @@ export default function Header() {
         @media (max-width: 768px) and (orientation: landscape) {
           .bottom-nav {
             display: flex !important;
-            padding: 8px 0;
+            padding: 6px 0;
           }
 
           .bottom-nav-item {
-            padding: 6px 12px;
+            padding: 6px 4px;
           }
         }
       `}</style>
@@ -415,7 +448,6 @@ export default function Header() {
               Anime
             </Link>
 
-            {/* ADD THIS: Watchlist Link */}
             <Link href="/watchlist" style={styles.navLink}>
               Watchlist
             </Link>
@@ -545,31 +577,61 @@ export default function Header() {
         </AnimatePresence>
       </div>
 
-      {/* Mobile Bottom Navigation */}
+      {/* ========== UPDATED MOBILE NAVIGATION ========== */}
       <nav className="bottom-nav">
-        <Link href="/" className="bottom-nav-item" aria-label="Home">
-          <Home size={24} color="#ffffff" />
+        <Link
+          href="/"
+          className={`bottom-nav-item ${pathname === '/' ? 'active' : ''}`}
+          aria-label="Home"
+        >
+          <Home />
+          <span className="bottom-nav-label">Home</span>
         </Link>
 
-        <Link href="/movies" className="bottom-nav-item" aria-label="Movies">
-          <Film size={24} color="#ffffff" />
+        <Link
+          href="/movies"
+          className={`bottom-nav-item ${
+            pathname.startsWith('/movies') || pathname.startsWith('/movie/')
+              ? 'active'
+              : ''
+          }`}
+          aria-label="Movies"
+        >
+          <Film />
+          <span className="bottom-nav-label">Movies</span>
         </Link>
 
-        <Link href="/anime" className="bottom-nav-item" aria-label="Anime">
-          <Sparkles size={24} color="#ffffff" />
+        <Link
+          href="/anime"
+          className={`bottom-nav-item ${
+            pathname.startsWith('/anime') ? 'active' : ''
+          }`}
+          aria-label="Anime"
+        >
+          <Sparkles />
+          <span className="bottom-nav-label">Anime</span>
         </Link>
 
-        <Link href="/tv" className="bottom-nav-item" aria-label="TV Shows">
-          <Tv size={24} color="#ffffff" />
+        <Link
+          href="/tv"
+          className={`bottom-nav-item ${
+            pathname.startsWith('/tv') ? 'active' : ''
+          }`}
+          aria-label="TV Shows"
+        >
+          <Tv />
+          <span className="bottom-nav-label">TV</span>
         </Link>
 
-        {/* ADD THIS: Watchlist Icon */}
         <Link
           href="/watchlist"
-          className="bottom-nav-item"
+          className={`bottom-nav-item ${
+            pathname === '/watchlist' ? 'active' : ''
+          }`}
           aria-label="Watchlist"
         >
-          <Bookmark size={24} color="#ffffff" />
+          <Bookmark />
+          <span className="bottom-nav-label">Saved</span>
         </Link>
 
         <button
@@ -577,11 +639,11 @@ export default function Header() {
           className="bottom-nav-item"
           aria-label="Search"
         >
-          <span className="bottom-nav-search-icon">
-            <SearchIcon size={22} color="#ffffff" strokeWidth={2.2} />
-          </span>
+          <SearchIcon strokeWidth={2.2} />
+          <span className="bottom-nav-label">Search</span>
         </button>
       </nav>
+      {/* ============================================== */}
     </>
   );
 }

@@ -3,7 +3,8 @@ import Footer from '@/components/Footer';
 import './globals.css';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/react';
-import { WatchlistProvider } from '@/context/WatchlistContext'; // ADD THIS IMPORT
+import { WatchlistProvider } from '@/context/WatchlistContext';
+import { ContinueWatchingProvider } from '@/context/ContinueWatchingContext';
 
 export const metadata = {
   metadataBase: new URL('https://flixet.vercel.app'),
@@ -11,7 +12,7 @@ export const metadata = {
   description:
     'Stream Movies, TV shows and Anime for free. No subscription required. Watch thousands of movies and series online.',
   keywords:
-    'free movies, watch movies online, stream tv shows, free streaming, movies online, anime streaming', 
+    'free movies, watch movies online, stream tv shows, free streaming, movies online, anime streaming',
   authors: [{ name: 'Devajuice' }],
   creator: 'Devajuice',
   publisher: 'Devajuice',
@@ -77,22 +78,23 @@ export default function RootLayout({ children }) {
       </head>
       <body style={{ paddingBottom: 0 }}>
         <WatchlistProvider>
-          {' '}
-          <Header />
-          <main
-            className="container"
-            style={{
-              minHeight: '100vh',
-              paddingTop: '40px',
-              paddingBottom: '100px',
-            }}
-          >
-            {children}
-          </main>
-          <Footer />
-          <SpeedInsights />
-          <Analytics />
-        </WatchlistProvider>{' '}
+          <ContinueWatchingProvider>
+            <Header />
+            <main
+              className="container"
+              style={{
+                minHeight: '100vh',
+                paddingTop: '40px',
+                paddingBottom: '100px',
+              }}
+            >
+              {children}
+            </main>
+            <Footer />
+            <SpeedInsights />
+            <Analytics />
+          </ContinueWatchingProvider>
+        </WatchlistProvider>
       </body>
     </html>
   );

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react'; // ← ADD useRef
 import { motion } from 'framer-motion';
 import {
   Star,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import WatchlistButton from '@/components/WatchlistButton';
+import { useContinueWatching } from '@/context/ContinueWatchingContext';
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
@@ -23,6 +24,11 @@ export default function MovieDetails({ params }) {
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPlayer, setShowPlayer] = useState(false);
+
+  const { addToContinueWatching } = useContinueWatching();
+
+  // ========== ADD THIS REF ==========
+  const hasAddedToWatching = useRef(false);
 
   useEffect(() => {
     fetchMovieDetails();
@@ -41,6 +47,27 @@ export default function MovieDetails({ params }) {
       setLoading(false);
     }
   };
+
+  // ========== UPDATED: Track when user starts watching with ref check ==========
+  useEffect(() => {
+    if (showPlayer && movie && !hasAddedToWatching.current) {
+      addToContinueWatching({
+        id: movie.id,
+        type: 'movie',
+        title: movie.title,
+        poster_path: movie.poster_path,
+        backdrop_path: movie.backdrop_path,
+        runtime: movie.runtime || 120,
+        progress: 15,
+      });
+      hasAddedToWatching.current = true;
+    }
+
+    if (!showPlayer) {
+      hasAddedToWatching.current = false;
+    }
+  }, [showPlayer, movie, addToContinueWatching]);
+  // ================================================================
 
   if (loading) {
     return (
