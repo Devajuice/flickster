@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, use, useRef } from 'react';
-import { useSearchParams } from 'next/navigation'; // ← ADD THIS
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Star,
@@ -21,52 +21,63 @@ const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 export default function TVShowDetails({ params }) {
   const unwrappedParams = use(params);
   const showId = unwrappedParams.id;
-
-  // ========== ADD THIS: Read URL parameters ==========
   const searchParams = useSearchParams();
-  const urlSeason = searchParams.get('season');
-  const urlEpisode = searchParams.get('episode');
-  // ===================================================
 
   const [show, setShow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPlayer, setShowPlayer] = useState(false);
-  const [selectedSeason, setSelectedSeason] = useState(1);
-  const [selectedEpisode, setSelectedEpisode] = useState(1);
+  const [selectedSeason, setSelectedSeason] = useState(null); // ← CHANGED: Start as null
+  const [selectedEpisode, setSelectedEpisode] = useState(null); // ← CHANGED: Start as null
   const [seasonData, setSeasonData] = useState(null);
+  const [initialLoadDone, setInitialLoadDone] = useState(false); // ← NEW: Track initial load
 
   const { addToContinueWatching } = useContinueWatching();
   const hasAddedToWatching = useRef(false);
 
+  // ========== STEP 1: Fetch show details ==========
   useEffect(() => {
     fetchShowDetails();
   }, [showId]);
 
+  // ========== STEP 2: Set initial season/episode from URL or defaults ==========
   useEffect(() => {
-    if (show && selectedSeason) {
+    if (show && !initialLoadDone) {
+      const urlSeason = searchParams.get('season');
+      const urlEpisode = searchParams.get('episode');
+
+      if (urlSeason && urlEpisode) {
+        // From Continue Watching - use URL params
+        const seasonNum = parseInt(urlSeason);
+        const episodeNum = parseInt(urlEpisode);
+
+        const seasonExists = show.seasons?.some(
+          (s) => s.season_number === seasonNum
+        );
+
+        if (seasonExists) {
+          setSelectedSeason(seasonNum);
+          setSelectedEpisode(episodeNum);
+        } else {
+          // Fallback if season doesn't exist
+          setDefaultSeason();
+        }
+      } else {
+        // Normal navigation - set defaults
+        setDefaultSeason();
+      }
+
+      setInitialLoadDone(true);
+    }
+  }, [show, searchParams, initialLoadDone]);
+
+  // ========== STEP 3: Fetch season details when season changes ==========
+  useEffect(() => {
+    if (selectedSeason !== null) {
       fetchSeasonDetails(selectedSeason);
     }
-  }, [selectedSeason, show]);
+  }, [selectedSeason]);
 
-  // ========== ADD THIS: Set season/episode from URL when show loads ==========
-  useEffect(() => {
-    if (show && urlSeason && urlEpisode) {
-      const seasonNum = parseInt(urlSeason);
-      const episodeNum = parseInt(urlEpisode);
-
-      // Check if the season exists in the show
-      const seasonExists = show.seasons?.some(
-        (s) => s.season_number === seasonNum
-      );
-
-      if (seasonExists) {
-        setSelectedSeason(seasonNum);
-        setSelectedEpisode(episodeNum);
-      }
-    }
-  }, [show, urlSeason, urlEpisode]);
-  // ===========================================================================
-
+  // ========== Continue Watching Logic ==========
   useEffect(() => {
     if (showPlayer && show && !hasAddedToWatching.current) {
       const currentEpisode = seasonData?.episodes?.find(
@@ -101,6 +112,16 @@ export default function TVShowDetails({ params }) {
     addToContinueWatching,
   ]);
 
+  // ========== Helper function to set default season ==========
+  const setDefaultSeason = () => {
+    if (show?.seasons && show.seasons.length > 0) {
+      const firstSeason =
+        show.seasons.find((s) => s.season_number > 0) || show.seasons[0];
+      setSelectedSeason(firstSeason.season_number);
+      setSelectedEpisode(1);
+    }
+  };
+
   const fetchShowDetails = async () => {
     try {
       const response = await fetch(
@@ -108,14 +129,6 @@ export default function TVShowDetails({ params }) {
       );
       const data = await response.json();
       setShow(data);
-
-      // ========== UPDATE THIS: Don't auto-select season if URL params exist ==========
-      if (!urlSeason && data.seasons && data.seasons.length > 0) {
-        const firstSeason =
-          data.seasons.find((s) => s.season_number > 0) || data.seasons[0];
-        setSelectedSeason(firstSeason.season_number);
-      }
-      // ================================================================================
     } catch (error) {
       console.error('Error fetching TV show details:', error);
     } finally {
@@ -131,14 +144,19 @@ export default function TVShowDetails({ params }) {
       const data = await response.json();
       setSeasonData(data);
 
-      // ========== UPDATE THIS: Don't reset episode if URL param exists ==========
-      if (!urlEpisode) {
+      // ← FIXED: Only reset episode if it's not already set
+      if (selectedEpisode === null) {
         setSelectedEpisode(1);
       }
-      // ===========================================================================
     } catch (error) {
       console.error('Error fetching season details:', error);
     }
+  };
+
+  // ========== Handle season change manually ==========
+  const handleSeasonChange = (seasonNumber) => {
+    setSelectedSeason(seasonNumber);
+    setSelectedEpisode(1); // Reset to episode 1 when changing seasons manually
   };
 
   if (loading) {
@@ -186,7 +204,6 @@ export default function TVShowDetails({ params }) {
   );
 
   const cast = show.credits?.cast?.slice(0, 10) || [];
-
   const validSeasons = show.seasons?.filter((s) => s.season_number > 0) || [];
 
   return (
@@ -477,7 +494,7 @@ export default function TVShowDetails({ params }) {
                       }}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => setSelectedSeason(season.season_number)}
+                      onClick={() => handleSeasonChange(season.season_number)}
                     >
                       Season {season.season_number}
                     </motion.button>
