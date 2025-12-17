@@ -2,8 +2,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import TVCard from '@/components/TVCard';
-import GridSizeToggle from '@/components/GridSizeToggle'; // ← ADD THIS
-import Link from 'next/link';
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
@@ -13,23 +11,8 @@ export default function AnimePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [gridSize, setGridSize] = useState('small'); // ← ADD THIS
 
   const observerTarget = useRef(null);
-
-  // ========== ADD THIS: Load grid size from localStorage ==========
-  useEffect(() => {
-    const savedSize = localStorage.getItem('animeGridSize');
-    if (savedSize) {
-      setGridSize(savedSize);
-    }
-  }, []);
-
-  const handleGridSizeChange = (size) => {
-    setGridSize(size);
-    localStorage.setItem('animeGridSize', size);
-  };
-  // ================================================================
 
   // Initial load
   useEffect(() => {
@@ -75,7 +58,7 @@ export default function AnimePage() {
       if (reset) {
         setAnimeList(data.results || []);
       } else {
-        // ========== FIX: Remove duplicates ==========
+        // Remove duplicates
         setAnimeList((prev) => {
           const existingIds = new Set(prev.map((a) => a.id));
           const newAnime = (data.results || []).filter(
@@ -83,7 +66,6 @@ export default function AnimePage() {
           );
           return [...prev, ...newAnime];
         });
-        // ============================================
       }
 
       setCurrentPage(page);
@@ -147,28 +129,12 @@ export default function AnimePage() {
           -webkit-text-fill-color: transparent;
         }
 
-        /* ========== UPDATE GRID STYLES ========== */
+        /* ========== UNIFIED GRID STYLE ========== */
         .anime-grid {
           display: grid;
-          margin-bottom: 60px;
-        }
-
-        /* Small Grid */
-        .anime-grid.small {
-          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-          gap: 15px;
-        }
-
-        /* Medium Grid (Default) */
-        .anime-grid.medium {
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
           gap: 20px;
-        }
-
-        /* Large Grid */
-        .anime-grid.large {
-          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-          gap: 30px;
+          margin-bottom: 60px;
         }
 
         @media (max-width: 768px) {
@@ -181,37 +147,16 @@ export default function AnimePage() {
             font-size: 32px;
           }
 
-          .anime-grid.small,
-          .anime-grid.medium,
-          .anime-grid.large {
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 10px !important;
+          .anime-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
           }
         }
 
-        @media (max-width: 400px) {
-          .anime-grid.small,
-          .anime-grid.medium,
-          .anime-grid.large {
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 8px !important;
-          }
-        }
-
-        @media (min-width: 1200px) {
-          .anime-grid.small {
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 18px;
-          }
-
-          .anime-grid.medium {
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 25px;
-          }
-
-          .anime-grid.large {
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 35px;
+        @media (max-width: 480px) {
+          .anime-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
           }
         }
         /* ======================================== */
@@ -230,26 +175,17 @@ export default function AnimePage() {
           </p>
         </div>
 
-        {/* ========== ADD THIS: Grid Size Toggle ========== */}
-        <GridSizeToggle
-          currentSize={gridSize}
-          onChange={handleGridSizeChange}
-        />
-        {/* ================================================= */}
-
         {!animeList.length ? (
           <div style={styles.noResults}>
             <p>No anime found.</p>
           </div>
         ) : (
           <>
-            {/* ========== UPDATE THIS: Add gridSize class ========== */}
-            <div className={`anime-grid ${gridSize}`}>
+            <div className="anime-grid">
               {animeList.map((show) => (
                 <TVCard key={show.id} show={show} />
               ))}
             </div>
-            {/* ===================================================== */}
 
             {/* Infinite Scroll Trigger */}
             <div ref={observerTarget} style={styles.observer}>

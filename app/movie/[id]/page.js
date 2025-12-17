@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect, use, useRef } from 'react'; // ← ADD useRef
-import { motion } from 'framer-motion';
+import { useState, useEffect, use, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star,
   Calendar,
@@ -9,6 +9,7 @@ import {
   Play,
   Lightbulb,
   Check,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import WatchlistButton from '@/components/WatchlistButton';
@@ -17,17 +18,15 @@ import { useContinueWatching } from '@/context/ContinueWatchingContext';
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
 export default function MovieDetails({ params }) {
-  // Unwrap params using React.use()
   const unwrappedParams = use(params);
   const movieId = unwrappedParams.id;
 
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showPlayer, setShowPlayer] = useState(false);
 
   const { addToContinueWatching } = useContinueWatching();
-
-  // ========== ADD THIS REF ==========
   const hasAddedToWatching = useRef(false);
 
   useEffect(() => {
@@ -35,20 +34,29 @@ export default function MovieDetails({ params }) {
   }, [movieId]);
 
   const fetchMovieDetails = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
       const response = await fetch(
-        `https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}&append_to_response=credits,videos`
+        `https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}&append_to_response=credits,videos,recommendations`
       );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch movie details');
+      }
+
       const data = await response.json();
       setMovie(data);
     } catch (error) {
       console.error('Error fetching movie details:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // ========== UPDATED: Track when user starts watching with ref check ==========
+  // Track when user starts watching
   useEffect(() => {
     if (showPlayer && movie && !hasAddedToWatching.current) {
       addToContinueWatching({
@@ -67,7 +75,18 @@ export default function MovieDetails({ params }) {
       hasAddedToWatching.current = false;
     }
   }, [showPlayer, movie, addToContinueWatching]);
-  // ================================================================
+
+  // Handle Escape key to close player
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && showPlayer) {
+        setShowPlayer(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [showPlayer]);
 
   if (loading) {
     return (
@@ -90,12 +109,20 @@ export default function MovieDetails({ params }) {
     );
   }
 
-  if (!movie) {
+  if (error || !movie) {
     return (
       <div style={styles.error}>
-        <p>Movie not found</p>
+        <h2 style={styles.errorTitle}>
+          {error ? 'Error Loading Movie' : 'Movie Not Found'}
+        </h2>
+        <p style={styles.errorText}>
+          {error || 'The movie you are looking for does not exist.'}
+        </p>
         <Link href="/movies">
-          <button style={styles.backButton}>Back to Movies</button>
+          <button style={styles.backButton}>
+            <ArrowLeft size={20} />
+            Back to Movies
+          </button>
         </Link>
       </div>
     );
@@ -114,8 +141,26 @@ export default function MovieDetails({ params }) {
     (video) => video.type === 'Trailer' && video.site === 'YouTube'
   );
 
-  // Get top 10 cast members
-  const cast = movie.credits?.cast?.slice(0, 10) || [];
+  // Get top cast members
+  const cast = movie.credits?.cast?.slice(0, 12) || [];
+
+  // Get crew members
+  const directors =
+    movie.credits?.crew?.filter((person) => person.job === 'Director') || [];
+  const writers =
+    movie.credits?.crew
+      ?.filter(
+        (person) => person.job === 'Writer' || person.job === 'Screenplay'
+      )
+      .slice(0, 3) || [];
+
+  // Format runtime
+  const formatRuntime = (minutes) => {
+    if (!minutes) return 'N/A';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
 
   return (
     <>
@@ -134,37 +179,27 @@ export default function MovieDetails({ params }) {
           padding-bottom: 100px;
         }
 
-        .tip-box {
-          background: #1a1a1a !important;
-          border: 2px solid var(--accent) !important;
-          border-left: 4px solid var(--accent) !important;
-          border-radius: 10px !important;
-          padding: 15px !important;
-          margin-top: 15px !important;
-          position: relative !important;
-          z-index: 1 !important;
-        }
-
         .content-grid {
           display: grid;
           grid-template-columns: 300px 1fr;
           gap: 40px;
+          margin-top: 30px;
         }
 
         .cast-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
           gap: 20px;
-          margin-top: 15px;
+          margin-top: 20px;
         }
 
         .cast-card {
           background-color: var(--card-bg);
-          border-radius: 10px;
+          border-radius: 12px;
           overflow: hidden;
           transition: all 0.3s ease;
           cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .cast-card:hover {
@@ -174,6 +209,13 @@ export default function MovieDetails({ params }) {
 
         .cast-card:hover :global(.cast-overlay) {
           opacity: 1 !important;
+        }
+
+        @media (max-width: 968px) {
+          .content-grid {
+            grid-template-columns: 250px 1fr;
+            gap: 30px;
+          }
         }
 
         @media (max-width: 768px) {
@@ -188,30 +230,35 @@ export default function MovieDetails({ params }) {
 
           .content-grid {
             grid-template-columns: 1fr;
-            gap: 20px;
-          }
-
-          .cast-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: 25px;
           }
 
           .poster-section {
             position: relative !important;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            top: 0 !important;
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 15px;
+            align-items: start;
           }
 
-          .mobile-button-group {
+          .mobile-actions {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            width: 100%;
+            gap: 12px;
+          }
+
+          .cast-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
           }
         }
 
         @media (max-width: 480px) {
+          .poster-section {
+            grid-template-columns: 1fr !important;
+          }
+
           .cast-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
@@ -226,42 +273,55 @@ export default function MovieDetails({ params }) {
         transition={{ duration: 0.5 }}
       >
         <Link href="/movies" style={styles.backLink}>
-          <ArrowLeft size={20} /> Back to Movies
+          <ArrowLeft size={20} />
+          <span>Back to Movies</span>
         </Link>
 
         {/* Video Player Modal */}
-        {showPlayer && (
-          <div
-            style={styles.playerOverlay}
-            onClick={() => setShowPlayer(false)}
-          >
-            <div
-              style={styles.playerContainer}
-              onClick={(e) => e.stopPropagation()}
+        <AnimatePresence>
+          {showPlayer && (
+            <motion.div
+              style={styles.playerOverlay}
+              onClick={() => setShowPlayer(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
             >
-              <button
-                style={styles.closeButton}
-                onClick={() => setShowPlayer(false)}
+              <motion.div
+                style={styles.playerContainer}
+                onClick={(e) => e.stopPropagation()}
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                transition={{ duration: 0.3 }}
               >
-                ✕
-              </button>
-              <iframe
-                style={styles.iframe}
-                src={`https://vidsrc.xyz/embed/movie/${movieId}`}
-                frameBorder="0"
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              />
-            </div>
-          </div>
-        )}
+                <button
+                  style={styles.closeButton}
+                  onClick={() => setShowPlayer(false)}
+                  aria-label="Close player"
+                >
+                  <X size={24} />
+                </button>
+                <iframe
+                  style={styles.iframe}
+                  src={`https://vidsrc.xyz/embed/movie/${movieId}`}
+                  frameBorder="0"
+                  allowFullScreen
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  title={`Watch ${movie.title}`}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Backdrop */}
         {backdropUrl && (
           <div style={styles.backdrop} className="backdrop">
             <img
               src={backdropUrl}
-              alt={movie.title}
+              alt={`${movie.title} backdrop`}
               style={styles.backdropImage}
             />
             <div style={styles.backdropOverlay}></div>
@@ -269,10 +329,16 @@ export default function MovieDetails({ params }) {
         )}
 
         <div className="content-grid">
+          {/* Poster Section */}
           <div style={styles.posterSection} className="poster-section">
-            <img src={posterUrl} alt={movie.title} style={styles.poster} />
+            <img
+              src={posterUrl}
+              alt={`${movie.title} poster`}
+              style={styles.poster}
+              loading="lazy"
+            />
 
-            <div className="mobile-button-group">
+            <div className="mobile-actions">
               {/* Watch Now Button */}
               <motion.button
                 style={styles.watchButton}
@@ -294,10 +360,12 @@ export default function MovieDetails({ params }) {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Play size={20} />
+                  <Play size={18} />
                   Watch Trailer
                 </motion.a>
               )}
+
+              {/* Watchlist Button */}
               <WatchlistButton
                 item={{
                   id: movie.id,
@@ -310,66 +378,66 @@ export default function MovieDetails({ params }) {
                 }}
                 variant="large"
               />
-            </div>
 
-            {/* Detailed Viewing Tips */}
-            <div style={styles.tipBox} className="tip-box">
-              <div style={styles.tipHeader}>
-                <Lightbulb size={18} style={{ color: 'var(--accent)' }} />
-                <span style={styles.tipTitle}>Tips for Better Viewing</span>
-              </div>
-
-              <p style={styles.tipDescription}>
-                We use free streaming services which may show ads. For the best
-                experience:
-              </p>
-
-              <div style={styles.tipList}>
-                <div style={styles.tipItem}>
-                  <Check size={16} style={styles.checkIcon} />
-                  <span>Use an ad-blocker (uBlock Origin recommended)</span>
+              {/* Viewing Tips */}
+              <div style={styles.tipBox}>
+                <div style={styles.tipHeader}>
+                  <Lightbulb size={16} style={{ color: 'var(--accent)' }} />
+                  <span style={styles.tipTitle}>Viewing Tips</span>
                 </div>
 
-                <div style={styles.tipItem}>
-                  <Check size={16} style={styles.checkIcon} />
-                  <span>Try different servers if one has too many ads</span>
-                </div>
+                <p style={styles.tipDescription}>
+                  Free streaming may show ads:
+                </p>
 
-                <div style={styles.tipItem}>
-                  <Check size={16} style={styles.checkIcon} />
-                  <span>Close any pop-ups that may appear</span>
-                </div>
-
-                <div style={styles.tipItem}>
-                  <Check size={16} style={styles.checkIcon} />
-                  <span>Never enter personal information</span>
+                <div style={styles.tipList}>
+                  <div style={styles.tipItem}>
+                    <Check size={14} style={styles.checkIcon} />
+                    <span>Use ad-blocker (uBlock Origin)</span>
+                  </div>
+                  <div style={styles.tipItem}>
+                    <Check size={14} style={styles.checkIcon} />
+                    <span>Try different servers if needed</span>
+                  </div>
+                  <div style={styles.tipItem}>
+                    <Check size={14} style={styles.checkIcon} />
+                    <span>Close pop-ups immediately</span>
+                  </div>
+                  <div style={styles.tipItem}>
+                    <Check size={14} style={styles.checkIcon} />
+                    <span>Never enter personal info</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Details Section */}
           <div style={styles.details}>
             <h1 style={styles.title}>{movie.title}</h1>
-
             {movie.tagline && <p style={styles.tagline}>"{movie.tagline}"</p>}
 
+            {/* Metadata */}
             <div style={styles.metadata}>
               <div style={styles.metaItem}>
                 <Star size={18} fill="#ffd700" color="#ffd700" />
-                <span>{movie.vote_average?.toFixed(1)} / 10</span>
+                <span>{movie.vote_average?.toFixed(1)}/10</span>
               </div>
               <div style={styles.metaItem}>
                 <Calendar size={18} />
-                <span>{movie.release_date || 'N/A'}</span>
+                <span>
+                  {new Date(movie.release_date).getFullYear() || 'N/A'}
+                </span>
               </div>
               {movie.runtime && (
                 <div style={styles.metaItem}>
                   <Clock size={18} />
-                  <span>{movie.runtime} min</span>
+                  <span>{formatRuntime(movie.runtime)}</span>
                 </div>
               )}
             </div>
 
+            {/* Genres */}
             {movie.genres && movie.genres.length > 0 && (
               <div style={styles.genres}>
                 {movie.genres.map((genre) => (
@@ -380,6 +448,7 @@ export default function MovieDetails({ params }) {
               </div>
             )}
 
+            {/* Overview */}
             <div style={styles.section}>
               <h2 style={styles.sectionTitle}>Overview</h2>
               <p style={styles.overview}>
@@ -387,56 +456,41 @@ export default function MovieDetails({ params }) {
               </p>
             </div>
 
-            {/* Director & Writer */}
-            {movie.credits?.crew && (
-              <>
-                {movie.credits.crew.find(
-                  (person) => person.job === 'Director'
-                ) && (
-                  <div style={styles.section}>
-                    <h2 style={styles.sectionTitle}>Director</h2>
-                    <p style={styles.creator}>
-                      {movie.credits.crew
-                        .filter((person) => person.job === 'Director')
-                        .map((person) => person.name)
-                        .join(', ')}
-                    </p>
-                  </div>
-                )}
+            {/* Director */}
+            {directors.length > 0 && (
+              <div style={styles.section}>
+                <h2 style={styles.sectionTitle}>
+                  {directors.length > 1 ? 'Directors' : 'Director'}
+                </h2>
+                <p style={styles.creator}>
+                  {directors.map((person) => person.name).join(', ')}
+                </p>
+              </div>
+            )}
 
-                {movie.credits.crew.find(
-                  (person) =>
-                    person.job === 'Writer' || person.job === 'Screenplay'
-                ) && (
-                  <div style={styles.section}>
-                    <h2 style={styles.sectionTitle}>Writer</h2>
-                    <p style={styles.creator}>
-                      {movie.credits.crew
-                        .filter(
-                          (person) =>
-                            person.job === 'Writer' ||
-                            person.job === 'Screenplay'
-                        )
-                        .slice(0, 3)
-                        .map((person) => person.name)
-                        .join(', ')}
-                    </p>
-                  </div>
-                )}
-              </>
+            {/* Writers */}
+            {writers.length > 0 && (
+              <div style={styles.section}>
+                <h2 style={styles.sectionTitle}>
+                  {writers.length > 1 ? 'Writers' : 'Writer'}
+                </h2>
+                <p style={styles.creator}>
+                  {writers.map((person) => person.name).join(', ')}
+                </p>
+              </div>
             )}
 
             {/* Cast Section */}
             {cast.length > 0 && (
               <div style={styles.section}>
-                <h2 style={styles.sectionTitle}>Cast</h2>
+                <h2 style={styles.sectionTitle}>Top Cast</h2>
                 <div className="cast-grid">
                   {cast.map((actor) => (
                     <motion.div
                       key={actor.id}
                       className="cast-card"
-                      whileHover={{ scale: 1.05, y: -5 }}
-                      transition={{ duration: 0.3 }}
+                      whileHover={{ y: -5 }}
+                      transition={{ duration: 0.2 }}
                     >
                       <div style={styles.castImageContainer}>
                         <img
@@ -447,6 +501,7 @@ export default function MovieDetails({ params }) {
                           }
                           alt={actor.name}
                           style={styles.castImage}
+                          loading="lazy"
                           onError={(e) => {
                             e.target.src =
                               'https://via.placeholder.com/185x278/1a1a1a/666?text=No+Image';
@@ -471,13 +526,14 @@ export default function MovieDetails({ params }) {
               </div>
             )}
 
-            {/* Production Companies */}
+            {/* Production Info */}
             {movie.production_companies &&
               movie.production_companies.length > 0 && (
                 <div style={styles.section}>
-                  <h2 style={styles.sectionTitle}>Production Companies</h2>
+                  <h2 style={styles.sectionTitle}>Production</h2>
                   <p style={styles.creator}>
                     {movie.production_companies
+                      .slice(0, 3)
                       .map((company) => company.name)
                       .join(', ')}
                   </p>
@@ -496,7 +552,7 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '60vh',
+    minHeight: '70vh',
     gap: '20px',
   },
   spinner: {
@@ -508,27 +564,49 @@ const styles = {
     animation: 'spin 1s linear infinite',
   },
   error: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '70vh',
     textAlign: 'center',
-    padding: '60px 20px',
+    padding: '20px',
+  },
+  errorTitle: {
+    fontSize: '32px',
+    fontWeight: 'bold',
+    marginBottom: '15px',
+    color: 'var(--accent)',
+  },
+  errorText: {
+    fontSize: '18px',
+    color: 'var(--text-secondary)',
+    marginBottom: '30px',
   },
   backButton: {
-    marginTop: '20px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '10px',
     padding: '12px 30px',
     backgroundColor: 'var(--accent)',
     color: 'white',
     border: 'none',
-    borderRadius: '5px',
+    borderRadius: '8px',
     fontSize: '16px',
+    fontWeight: '600',
     cursor: 'pointer',
+    transition: 'all 0.3s ease',
   },
   backLink: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '8px',
-    marginBottom: '30px',
+    gap: '10px',
     color: 'var(--text-secondary)',
     textDecoration: 'none',
+    fontSize: '16px',
+    fontWeight: '500',
     transition: 'color 0.3s ease',
+    marginBottom: '20px',
   },
   playerOverlay: {
     position: 'fixed',
@@ -540,7 +618,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 9999,
+    zIndex: 10000,
     padding: '20px',
   },
   playerContainer: {
@@ -549,26 +627,27 @@ const styles = {
     maxWidth: '1400px',
     aspectRatio: '16/9',
     backgroundColor: '#000',
-    borderRadius: '10px',
+    borderRadius: '12px',
     overflow: 'hidden',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
   },
   closeButton: {
     position: 'absolute',
-    top: '10px',
-    right: '10px',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    top: '15px',
+    right: '15px',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     color: 'white',
     border: 'none',
     borderRadius: '50%',
-    width: '40px',
-    height: '40px',
+    width: '45px',
+    height: '45px',
     fontSize: '24px',
     cursor: 'pointer',
     zIndex: 10,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'background-color 0.3s ease',
+    transition: 'all 0.3s ease',
   },
   iframe: {
     width: '100%',
@@ -578,10 +657,10 @@ const styles = {
   backdrop: {
     position: 'relative',
     width: '100%',
-    height: '500px',
-    marginBottom: '30px',
+    height: '450px',
     borderRadius: '15px',
     overflow: 'hidden',
+    marginBottom: '0px',
   },
   backdropImage: {
     width: '100%',
@@ -599,13 +678,13 @@ const styles = {
   },
   posterSection: {
     position: 'sticky',
-    top: '100px',
+    top: '80px',
     height: 'fit-content',
   },
   poster: {
     width: '100%',
-    borderRadius: '15px',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+    borderRadius: '12px',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
     marginBottom: '20px',
   },
   watchButton: {
@@ -615,8 +694,8 @@ const styles = {
     color: 'white',
     border: 'none',
     borderRadius: '10px',
-    fontSize: '18px',
-    fontWeight: 'bold',
+    fontSize: '17px',
+    fontWeight: '700',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -626,30 +705,28 @@ const styles = {
   },
   trailerButton: {
     width: '100%',
-    padding: '15px',
+    padding: '14px',
     backgroundColor: 'transparent',
     color: 'white',
     border: '2px solid var(--accent)',
     borderRadius: '10px',
-    fontSize: '16px',
-    fontWeight: 'bold',
+    fontSize: '15px',
+    fontWeight: '600',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '10px',
+    gap: '8px',
     textDecoration: 'none',
     transition: 'all 0.3s ease',
   },
   tipBox: {
-    background: 'rgba(26, 26, 26, 1)',
-    border: '2px solid var(--accent)',
+    background: 'rgba(26, 26, 26, 0.8)',
+    border: '2px solid rgba(229, 9, 20, 0.3)',
     borderLeft: '4px solid var(--accent)',
     borderRadius: '10px',
-    padding: '15px',
+    padding: '14px',
     marginTop: '15px',
-    position: 'relative',
-    zIndex: 1,
   },
   tipHeader: {
     display: 'flex',
@@ -658,28 +735,28 @@ const styles = {
     marginBottom: '10px',
   },
   tipTitle: {
-    fontSize: '14px',
-    fontWeight: 'bold',
+    fontSize: '13px',
+    fontWeight: '700',
     color: 'var(--accent)',
   },
   tipDescription: {
-    fontSize: '12px',
+    fontSize: '11px',
     color: 'var(--text-secondary)',
-    marginBottom: '12px',
-    lineHeight: '1.5',
+    marginBottom: '10px',
+    lineHeight: '1.4',
   },
   tipList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '7px',
   },
   tipItem: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: '8px',
+    gap: '7px',
     fontSize: '11px',
     color: 'var(--text-secondary)',
-    lineHeight: '1.4',
+    lineHeight: '1.3',
   },
   checkIcon: {
     color: '#4ade80',
@@ -691,17 +768,18 @@ const styles = {
   },
   title: {
     fontSize: '48px',
-    fontWeight: 'bold',
+    fontWeight: '800',
     marginBottom: '10px',
-    background: 'linear-gradient(to right, #e50914, #f40612)',
+    background: 'linear-gradient(135deg, #e50914 0%, #f40612 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
+    lineHeight: '1.2',
   },
   tagline: {
     fontSize: '18px',
     fontStyle: 'italic',
     color: 'var(--text-secondary)',
-    marginBottom: '20px',
+    marginBottom: '25px',
   },
   metadata: {
     display: 'flex',
@@ -714,28 +792,30 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
     fontSize: '16px',
+    fontWeight: '500',
     color: 'var(--text-secondary)',
   },
   genres: {
     display: 'flex',
     gap: '10px',
     flexWrap: 'wrap',
-    marginBottom: '30px',
+    marginBottom: '35px',
   },
   genre: {
-    padding: '8px 16px',
-    backgroundColor: 'rgba(229, 9, 20, 0.2)',
-    border: '1px solid var(--accent)',
-    borderRadius: '20px',
+    padding: '8px 18px',
+    backgroundColor: 'rgba(229, 9, 20, 0.15)',
+    border: '1px solid rgba(229, 9, 20, 0.4)',
+    borderRadius: '25px',
     fontSize: '14px',
+    fontWeight: '600',
     color: 'var(--accent)',
   },
   section: {
-    marginBottom: '30px',
+    marginBottom: '35px',
   },
   sectionTitle: {
     fontSize: '24px',
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: '15px',
     color: 'var(--text-primary)',
   },
@@ -747,6 +827,7 @@ const styles = {
   creator: {
     fontSize: '16px',
     color: 'var(--text-secondary)',
+    fontWeight: '500',
   },
   castImageContainer: {
     width: '100%',
@@ -754,7 +835,7 @@ const styles = {
     position: 'relative',
     overflow: 'hidden',
     backgroundColor: '#1a1a1a',
-    borderRadius: '8px',
+    borderRadius: '10px', // ✅ ADDED THIS
   },
   castImage: {
     position: 'absolute',
@@ -763,6 +844,7 @@ const styles = {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
+    borderRadius: '10px', // ✅ ADDED THIS
   },
   castOverlay: {
     position: 'absolute',
@@ -771,12 +853,13 @@ const styles = {
     right: 0,
     background:
       'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)',
-    padding: '40px 10px 10px',
+    padding: '35px 10px 10px',
     opacity: 0,
     transition: 'opacity 0.3s ease',
+    borderRadius: '0 0 10px 10px', // ✅ ADDED THIS (only bottom corners)
   },
   castOverlayText: {
-    fontSize: '12px',
+    fontSize: '11px',
     color: 'white',
     fontWeight: '600',
     textAlign: 'center',
@@ -784,12 +867,12 @@ const styles = {
     lineHeight: '1.3',
   },
   castInfo: {
-    padding: '12px 8px',
+    padding: '12px 10px',
     textAlign: 'center',
   },
   castName: {
-    fontSize: '14px',
-    fontWeight: 'bold',
+    fontSize: '13px',
+    fontWeight: '700',
     color: 'var(--text-primary)',
     marginBottom: '4px',
     overflow: 'hidden',
@@ -797,7 +880,7 @@ const styles = {
     whiteSpace: 'nowrap',
   },
   castCharacter: {
-    fontSize: '12px',
+    fontSize: '11px',
     color: 'var(--text-secondary)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
