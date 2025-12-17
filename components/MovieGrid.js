@@ -2,7 +2,6 @@
 import MovieCard from './MovieCard';
 
 export default function MovieGrid({ movies = [] }) {
-  // Safety check
   if (!movies || !Array.isArray(movies)) {
     return (
       <div
@@ -36,16 +35,15 @@ export default function MovieGrid({ movies = [] }) {
       <style jsx>{`
         .grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
           gap: 20px;
-          padding: 20px 0;
+          margin-bottom: 60px;
         }
 
         @media (max-width: 768px) {
           .grid {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 12px;
-            padding: 15px 0;
           }
         }
 
@@ -53,14 +51,6 @@ export default function MovieGrid({ movies = [] }) {
           .grid {
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
-            padding: 12px 0;
-          }
-        }
-
-        @media (min-width: 1200px) {
-          .grid {
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 25px;
           }
         }
       `}</style>

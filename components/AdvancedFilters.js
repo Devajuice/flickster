@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom'; // ✅ Added
 import { motion, AnimatePresence } from 'framer-motion';
 import { SlidersHorizontal, X } from 'lucide-react';
 
@@ -10,11 +11,17 @@ export default function AdvancedFilters({
   initialFilters = {},
 }) {
   const [showFilters, setShowFilters] = useState(false);
+  const [mounted, setMounted] = useState(false); // ✅ Added
   const [filters, setFilters] = useState({
     sort_by: 'popularity.desc',
     with_genres: '',
     ...initialFilters,
   });
+
+  // ✅ Added: Prevent SSR issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const sortOptions = [
     { value: 'popularity.desc', label: 'Most Popular' },
@@ -75,7 +82,6 @@ export default function AdvancedFilters({
   };
 
   const applyFilters = () => {
-    // Remove empty filters
     const cleanFilters = Object.fromEntries(
       Object.entries(filters).filter(([_, v]) => v !== '')
     );
@@ -92,305 +98,343 @@ export default function AdvancedFilters({
     onFilterChange({ sort_by: 'popularity.desc' });
   };
 
-  const activeFilterCount = Object.values(filters).filter(
-    (v) => v && v !== 'popularity.desc'
-  ).length;
+  const activeFilterCount = () => {
+    let count = 0;
 
-  return (
-    <>
-      <style jsx>{`
-        .filter-button {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 20px;
-          background: var(--card-bg);
-          border: 1px solid rgba(229, 9, 20, 0.3);
-          border-radius: 8px;
-          color: var(--text-primary);
-          cursor: pointer;
-          transition: all 0.3s ease;
-          font-size: 14px;
-          font-weight: 600;
-        }
+    if (filters.with_genres) {
+      const genreCount = filters.with_genres.split(',').filter(Boolean).length;
+      count += genreCount;
+    }
 
-        .filter-button:hover {
-          background: rgba(229, 9, 20, 0.1);
-          border-color: var(--accent);
-        }
+    if (filters.sort_by && filters.sort_by !== 'popularity.desc') {
+      count += 1;
+    }
 
-        .filter-badge {
-          background: var(--accent);
-          color: white;
-          border-radius: 50%;
-          width: 20px;
-          height: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: bold;
-        }
+    return count;
+  };
 
-        .filter-modal {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.8);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 99998;
-          padding: 20px;
-          backdrop-filter: blur(4px);
-        }
+  // ✅ Modal content extracted
+  const modalContent = (
+    <AnimatePresence>
+      {showFilters && (
+        <>
+          <style jsx global>{`
+            .filter-modal {
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(0, 0, 0, 0.88);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              z-index: 99998;
+              padding: 20px;
+              backdrop-filter: blur(10px);
+              overflow-y: auto;
+            }
 
-        .filter-content {
-          background: var(--secondary-bg);
-          border-radius: 12px;
-          max-width: 600px;
-          width: 100%;
-          max-height: 85vh;
-          overflow-y: auto;
-          padding: 30px;
-          border: 1px solid rgba(229, 9, 20, 0.3);
-          position: relative;
-          z-index: 99999;
-        }
+            .filter-content {
+              background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+              border-radius: 16px;
+              width: 520px;
+              max-width: 520px;
+              min-width: 520px;
+              max-height: 85vh;
+              overflow-y: auto;
+              padding: 30px;
+              border: 1px solid rgba(229, 9, 20, 0.3);
+              box-shadow: 0 25px 70px rgba(0, 0, 0, 0.9);
+              position: relative;
+              z-index: 99999;
+            }
 
-        .filter-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 25px;
-        }
+            .filter-content::-webkit-scrollbar {
+              width: 8px;
+            }
 
-        .filter-title {
-          font-size: 24px;
-          font-weight: bold;
-          color: var(--accent);
-        }
+            .filter-content::-webkit-scrollbar-track {
+              background: rgba(0, 0, 0, 0.3);
+              border-radius: 4px;
+            }
 
-        .close-button {
-          background: transparent;
-          border: none;
-          color: var(--text-secondary);
-          cursor: pointer;
-          padding: 5px;
-          transition: all 0.3s ease;
-        }
+            .filter-content::-webkit-scrollbar-thumb {
+              background: #e50914;
+              border-radius: 4px;
+            }
 
-        .close-button:hover {
-          color: var(--accent);
-          transform: rotate(90deg);
-        }
+            .filter-content::-webkit-scrollbar-thumb:hover {
+              background: #ff4458;
+            }
 
-        .filter-section {
-          margin-bottom: 25px;
-        }
+            .filter-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 28px;
+              padding-bottom: 18px;
+              border-bottom: 1px solid rgba(229, 9, 20, 0.2);
+            }
 
-        .filter-label {
-          font-size: 18px;
-          font-weight: 600;
-          color: var(--text-primary);
-          margin-bottom: 12px;
-          display: block;
-        }
+            .filter-title {
+              font-size: 24px;
+              font-weight: 800;
+              background: linear-gradient(135deg, #ffffff 0%, #e50914 100%);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+            }
 
-        .filter-select {
-          width: 100%;
-          padding: 12px 16px;
-          background: var(--card-bg);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          color: var(--text-primary);
-          font-size: 15px;
-          transition: all 0.3s ease;
-          cursor: pointer;
-        }
+            .close-button {
+              background: rgba(229, 9, 20, 0.12);
+              border: 1px solid rgba(229, 9, 20, 0.3);
+              color: var(--text-secondary);
+              cursor: pointer;
+              padding: 8px;
+              border-radius: 50%;
+              transition: all 0.3s ease;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 36px;
+              height: 36px;
+            }
 
-        .filter-select:focus {
-          outline: none;
-          border-color: var(--accent);
-        }
+            .close-button:hover {
+              background: rgba(229, 9, 20, 0.25);
+              color: var(--accent);
+              transform: rotate(90deg);
+            }
 
-        .filter-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
-        }
+            .filter-section {
+              margin-bottom: 24px;
+            }
 
-        .genre-chip {
-          padding: 8px 12px;
-          background: var(--card-bg);
-          border: 2px solid rgba(255, 255, 255, 0.1);
-          border-radius: 20px;
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          font-size: 13px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
+            .filter-label {
+              font-size: 16px;
+              font-weight: 700;
+              color: var(--text-primary);
+              margin-bottom: 12px;
+              display: block;
+            }
 
-        .genre-chip:hover {
-          border-color: var(--accent);
-          background: rgba(229, 9, 20, 0.1);
-        }
+            .filter-select {
+              width: 100%;
+              padding: 12px 16px;
+              background: rgba(15, 15, 15, 0.7);
+              border: 1px solid rgba(255, 255, 255, 0.1);
+              border-radius: 10px;
+              color: var(--text-primary);
+              font-size: 14px;
+              transition: all 0.3s ease;
+              cursor: pointer;
+            }
 
-        .genre-chip.active {
-          background: var(--accent);
-          border-color: var(--accent);
-          color: white;
-          font-weight: 600;
-        }
+            .filter-select:focus {
+              outline: none;
+              border-color: var(--accent);
+              background: rgba(15, 15, 15, 0.9);
+            }
 
-        .filter-actions {
-          display: flex;
-          gap: 12px;
-          margin-top: 25px;
-          padding-top: 20px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
+            .filter-select:hover {
+              border-color: rgba(229, 9, 20, 0.3);
+            }
 
-        .btn-apply {
-          flex: 1;
-          padding: 12px 24px;
-          background: var(--accent);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 15px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
+            .filter-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 8px;
+            }
 
-        .btn-apply:hover {
-          background: #c20812;
-          transform: translateY(-2px);
-        }
+            .genre-chip {
+              padding: 9px 12px;
+              background: rgba(15, 15, 15, 0.7);
+              border: 2px solid rgba(255, 255, 255, 0.1);
+              border-radius: 20px;
+              text-align: center;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              font-size: 13px;
+              font-weight: 500;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
 
-        .btn-reset {
-          flex: 1;
-          padding: 12px 24px;
-          background: transparent;
-          color: var(--text-secondary);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 8px;
-          font-size: 15px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
+            .genre-chip:hover {
+              border-color: var(--accent);
+              background: rgba(229, 9, 20, 0.15);
+              transform: translateY(-2px);
+            }
 
-        .btn-reset:hover {
-          border-color: var(--accent);
-          color: var(--accent);
-        }
+            .genre-chip.active {
+              background: linear-gradient(135deg, #e50914 0%, #ff4458 100%);
+              border-color: transparent;
+              color: white;
+              font-weight: 700;
+              box-shadow: 0 4px 12px rgba(229, 9, 20, 0.4);
+            }
 
-        /* Mobile optimizations */
-        @media (max-width: 768px) {
-          .filter-modal {
-            padding: 10px;
-          }
+            .filter-actions {
+              display: flex;
+              gap: 10px;
+              margin-top: 26px;
+              padding-top: 22px;
+              border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
 
-          .filter-content {
-            padding: 20px 15px;
-            max-width: 95%;
-            max-height: 90vh;
-          }
+            .btn-apply {
+              flex: 1;
+              padding: 13px 24px;
+              background: linear-gradient(135deg, #e50914 0%, #ff4458 100%);
+              color: white;
+              border: none;
+              border-radius: 10px;
+              font-size: 15px;
+              font-weight: 700;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
+            }
 
-          .filter-header {
-            margin-bottom: 20px;
-          }
+            .btn-apply:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 6px 20px rgba(229, 9, 20, 0.5);
+            }
 
-          .filter-title {
-            font-size: 20px;
-          }
+            .btn-reset {
+              flex: 1;
+              padding: 13px 24px;
+              background: transparent;
+              color: var(--text-secondary);
+              border: 2px solid rgba(255, 255, 255, 0.2);
+              border-radius: 10px;
+              font-size: 15px;
+              font-weight: 700;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            }
 
-          .filter-section {
-            margin-bottom: 20px;
-          }
+            .btn-reset:hover {
+              border-color: var(--accent);
+              color: var(--accent);
+              background: rgba(229, 9, 20, 0.05);
+            }
 
-          .filter-label {
-            font-size: 16px;
-            margin-bottom: 10px;
-          }
+            @media (min-width: 769px) {
+              .filter-modal {
+                padding: 40px;
+              }
 
-          .filter-select {
-            padding: 10px 14px;
-            font-size: 14px;
-          }
+              .filter-content {
+                width: 520px;
+                max-width: 520px;
+                min-width: 520px;
+                padding: 35px;
+              }
 
-          .filter-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-          }
+              .filter-title {
+                font-size: 26px;
+              }
 
-          .genre-chip {
-            font-size: 12px;
-            padding: 7px 10px;
-          }
+              .filter-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+              }
 
-          .filter-actions {
-            margin-top: 20px;
-            padding-top: 15px;
-            gap: 10px;
-          }
+              .genre-chip {
+                padding: 10px 14px;
+                font-size: 13px;
+              }
+            }
 
-          .btn-apply,
-          .btn-reset {
-            padding: 11px 20px;
-            font-size: 14px;
-          }
-        }
+            @media (max-width: 768px) {
+              .filter-modal {
+                padding: 10px;
+              }
 
-        /* Extra small screens */
-        @media (max-width: 400px) {
-          .filter-content {
-            padding: 15px 12px;
-          }
+              .filter-content {
+                width: calc(100vw - 20px) !important;
+                max-width: 95% !important;
+                min-width: auto !important;
+                padding: 25px 18px;
+                border-radius: 14px;
+              }
 
-          .filter-title {
-            font-size: 18px;
-          }
+              .filter-header {
+                margin-bottom: 22px;
+                padding-bottom: 16px;
+              }
 
-          .filter-section {
-            margin-bottom: 18px;
-          }
+              .filter-title {
+                font-size: 21px;
+              }
 
-          .filter-label {
-            font-size: 15px;
-          }
+              .filter-section {
+                margin-bottom: 20px;
+              }
 
-          .filter-grid {
-            gap: 6px;
-          }
+              .filter-label {
+                font-size: 15px;
+                margin-bottom: 10px;
+              }
 
-          .genre-chip {
-            font-size: 11px;
-            padding: 6px 8px;
-            border-width: 1.5px;
-          }
-        }
-      `}</style>
+              .filter-select {
+                padding: 11px 14px;
+                font-size: 14px;
+              }
 
-      {/* Filter Button */}
-      <button className="filter-button" onClick={() => setShowFilters(true)}>
-        <SlidersHorizontal size={18} />
-        Filters
-        {activeFilterCount > 0 && (
-          <span className="filter-badge">{activeFilterCount}</span>
-        )}
-      </button>
+              .filter-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+              }
 
-      {/* Filter Modal */}
-      <AnimatePresence>
-        {showFilters && (
+              .genre-chip {
+                font-size: 12px;
+                padding: 8px 11px;
+              }
+
+              .filter-actions {
+                margin-top: 22px;
+                padding-top: 18px;
+                gap: 10px;
+              }
+
+              .btn-apply,
+              .btn-reset {
+                padding: 12px 20px;
+                font-size: 14px;
+              }
+            }
+
+            @media (max-width: 400px) {
+              .filter-content {
+                padding: 20px 14px;
+              }
+
+              .filter-title {
+                font-size: 19px;
+              }
+
+              .filter-section {
+                margin-bottom: 18px;
+              }
+
+              .filter-label {
+                font-size: 14px;
+              }
+
+              .filter-grid {
+                gap: 6px;
+              }
+
+              .genre-chip {
+                font-size: 11px;
+                padding: 7px 9px;
+              }
+            }
+          `}</style>
+
           <motion.div
             className="filter-modal"
             initial={{ opacity: 0 }}
@@ -480,8 +524,62 @@ export default function AdvancedFilters({
               </div>
             </motion.div>
           </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+
+  return (
+    <>
+      <style jsx>{`
+        .filter-button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 20px;
+          background: var(--card-bg);
+          border: 1px solid rgba(229, 9, 20, 0.3);
+          border-radius: 8px;
+          color: var(--text-primary);
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .filter-button:hover {
+          background: rgba(229, 9, 20, 0.1);
+          border-color: var(--accent);
+        }
+
+        .filter-badge {
+          background: var(--accent);
+          color: white;
+          border-radius: 50%;
+          min-width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: bold;
+          padding: 0 6px;
+        }
+      `}</style>
+
+      {/* Filter Button */}
+      <button className="filter-button" onClick={() => setShowFilters(true)}>
+        <SlidersHorizontal size={18} />
+        Filters
+        {activeFilterCount() > 0 && (
+          <span className="filter-badge">{activeFilterCount()}</span>
         )}
-      </AnimatePresence>
+      </button>
+
+      {/* ✅ Render modal as Portal to document.body */}
+      {mounted &&
+        typeof document !== 'undefined' &&
+        createPortal(modalContent, document.body)}
     </>
   );
 }

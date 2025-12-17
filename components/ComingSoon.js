@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Calendar, Star, Play } from 'lucide-react';
+import { Calendar, Star, Play, Sparkles } from 'lucide-react';
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
@@ -20,18 +20,22 @@ export default function ComingSoon({ type = 'movie' }) {
     try {
       let url;
       if (type === 'movie') {
-        // Upcoming movies
-        url = `https://api.themoviedb.org/3/movie/upcoming?api_key=${API_KEY}&language=en-US&page=1`;
+        url = `https://api.themoviedb.org/3/movie/upcoming?api_key=${API_KEY}&language=en-US&page=1&region=US`;
       } else {
-        // On The Air TV shows (airing soon)
         url = `https://api.themoviedb.org/3/tv/on_the_air?api_key=${API_KEY}&language=en-US&page=1`;
       }
 
       const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch coming soon items');
+      }
+
       const data = await response.json();
-      setItems(data.results?.slice(0, 10) || []);
+      setItems(data.results?.slice(0, 12) || []);
     } catch (error) {
       console.error('Error fetching coming soon:', error);
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -49,10 +53,26 @@ export default function ComingSoon({ type = 'movie' }) {
 
   if (loading) {
     return (
-      <div style={styles.loading}>
-        <div style={styles.spinner}></div>
-      </div>
+      <>
+        <style jsx>{`
+          @keyframes spin {
+            0% {
+              transform: rotate(0deg);
+            }
+            100% {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
+        <div style={styles.loading}>
+          <div style={styles.spinner}></div>
+        </div>
+      </>
     );
+  }
+
+  if (items.length === 0) {
+    return null;
   }
 
   return (
@@ -67,30 +87,46 @@ export default function ComingSoon({ type = 'movie' }) {
           }
         }
 
+        @keyframes shimmer {
+          0% {
+            opacity: 0.6;
+          }
+          50% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0.6;
+          }
+        }
+
         .coming-soon-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
           gap: 20px;
         }
 
-        /* ========== ADD THESE HOVER STYLES ========== */
         .coming-soon-card {
           transition: transform 0.3s ease, box-shadow 0.3s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .coming-soon-card:hover {
           transform: translateY(-8px);
-          box-shadow: 0 12px 24px rgba(229, 9, 20, 0.4);
+          box-shadow: 0 12px 28px rgba(229, 9, 20, 0.5);
         }
 
         .coming-soon-card:hover .poster-image {
-          transform: scale(1.05);
+          transform: scale(1.08);
         }
 
         .coming-soon-card:hover .hover-overlay {
           opacity: 1;
         }
-        /* =========================================== */
+
+        .coming-soon-card:hover .badge {
+          background: linear-gradient(135deg, #e50914 0%, #f40612 100%);
+          animation: shimmer 1.5s ease-in-out infinite;
+        }
 
         @media (max-width: 768px) {
           .coming-soon-grid {
@@ -109,12 +145,26 @@ export default function ComingSoon({ type = 'movie' }) {
 
       <div style={styles.header}>
         <h2 style={styles.title}>
+          <Sparkles
+            size={24}
+            style={{
+              display: 'inline',
+              marginRight: '8px',
+              verticalAlign: 'middle',
+            }}
+          />
           Coming Soon • {type === 'movie' ? 'Movies' : 'TV Shows'}
         </h2>
         <Link
           href={type === 'movie' ? '/coming-soon/movies' : '/coming-soon/tv'}
         >
-          <span style={styles.viewAll}>View All →</span>
+          <motion.span
+            style={styles.viewAll}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            View All →
+          </motion.span>
         </Link>
       </div>
 
@@ -124,7 +174,7 @@ export default function ComingSoon({ type = 'movie' }) {
             key={item.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
+            transition={{ delay: index * 0.04, duration: 0.3 }}
           >
             <Link
               href={type === 'movie' ? `/movie/${item.id}` : `/tv/${item.id}`}
@@ -142,14 +192,23 @@ export default function ComingSoon({ type = 'movie' }) {
                     alt={item.title || item.name}
                     style={styles.poster}
                     className="poster-image"
+                    loading="lazy"
                   />
 
                   {/* Coming Soon Badge */}
-                  <div style={styles.badge}>Coming Soon</div>
+                  <div style={styles.badge} className="badge">
+                    <Sparkles size={10} style={{ marginRight: '4px' }} />
+                    Coming Soon
+                  </div>
 
                   {/* Hover Overlay */}
                   <div style={styles.overlay} className="hover-overlay">
-                    <Play size={40} fill="white" />
+                    <motion.div
+                      whileHover={{ scale: 1.2 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Play size={48} fill="white" strokeWidth={0} />
+                    </motion.div>
                   </div>
                 </div>
 
@@ -159,14 +218,19 @@ export default function ComingSoon({ type = 'movie' }) {
 
                   <div style={styles.meta}>
                     <div style={styles.metaItem}>
-                      <Calendar size={14} />
+                      <Calendar size={13} style={{ flexShrink: 0 }} />
                       <span>
                         {formatDate(item.release_date || item.first_air_date)}
                       </span>
                     </div>
                     {item.vote_average > 0 && (
                       <div style={styles.metaItem}>
-                        <Star size={14} fill="#ffd700" color="#ffd700" />
+                        <Star
+                          size={13}
+                          fill="#ffd700"
+                          color="#ffd700"
+                          style={{ flexShrink: 0 }}
+                        />
                         <span>{item.vote_average.toFixed(1)}</span>
                       </div>
                     )}
@@ -189,21 +253,24 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '25px',
+    marginBottom: '30px',
   },
   title: {
-    fontSize: '28px',
-    fontWeight: 'bold',
-    background: 'linear-gradient(to right, #e50914, #f40612)',
+    fontSize: '32px',
+    fontWeight: '800',
+    background: 'linear-gradient(135deg, #e50914 0%, #f40612 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
+    display: 'flex',
+    alignItems: 'center',
   },
   viewAll: {
     color: 'var(--accent)',
     fontSize: '16px',
-    fontWeight: '600',
+    fontWeight: '700',
     cursor: 'pointer',
-    transition: 'opacity 0.3s ease',
+    transition: 'all 0.3s ease',
+    display: 'inline-block',
   },
   loading: {
     display: 'flex',
@@ -226,7 +293,7 @@ const styles = {
   },
   card: {
     backgroundColor: 'var(--card-bg)',
-    borderRadius: '10px',
+    borderRadius: '12px',
     overflow: 'hidden',
     cursor: 'pointer',
   },
@@ -240,7 +307,7 @@ const styles = {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
-    transition: 'transform 0.3s ease',
+    transition: 'transform 0.4s ease',
   },
   badge: {
     position: 'absolute',
@@ -248,13 +315,17 @@ const styles = {
     left: '10px',
     backgroundColor: 'var(--accent)',
     color: 'white',
-    padding: '4px 10px',
-    borderRadius: '5px',
-    fontSize: '11px',
-    fontWeight: 'bold',
+    padding: '5px 10px',
+    borderRadius: '6px',
+    fontSize: '10px',
+    fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
     zIndex: 2,
+    display: 'flex',
+    alignItems: 'center',
+    boxShadow: '0 2px 8px rgba(229, 9, 20, 0.6)',
+    transition: 'all 0.3s ease',
   },
   overlay: {
     position: 'absolute',
@@ -262,7 +333,8 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    background:
+      'linear-gradient(135deg, rgba(229, 9, 20, 0.85) 0%, rgba(0, 0, 0, 0.85) 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -271,30 +343,32 @@ const styles = {
     zIndex: 1,
   },
   info: {
-    padding: '12px',
+    padding: '14px',
   },
   itemTitle: {
     fontSize: '14px',
-    fontWeight: '600',
-    marginBottom: '8px',
+    fontWeight: '700',
+    marginBottom: '10px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     display: '-webkit-box',
     WebkitLineClamp: 2,
     WebkitBoxOrient: 'vertical',
-    lineHeight: '1.3',
-    minHeight: '36px',
+    lineHeight: '1.4',
+    minHeight: '40px',
+    color: 'var(--text-primary)',
   },
   meta: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
+    gap: '6px',
   },
   metaItem: {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
     fontSize: '12px',
+    fontWeight: '500',
     color: 'var(--text-secondary)',
   },
 };
