@@ -4,7 +4,7 @@ import AdBlockerNotice from './AdBlockerNotice';
 
 export default function VideoPlayer({ movieId }) {
   const [selectedServer, setSelectedServer] = useState('server1');
-  
+
   const servers = {
     server1: `https://www.2embed.cc/embed/${movieId}`,
     server2: `https://multiembed.mov/?video_id=${movieId}&tmdb=1`,
@@ -78,29 +78,37 @@ export default function VideoPlayer({ movieId }) {
 
       <div className="player-wrapper">
         <AdBlockerNotice />
-        
+
         <div className="server-buttons">
           <button
             onClick={() => setSelectedServer('server1')}
-            className={`server-btn ${selectedServer === 'server1' ? 'active' : ''}`}
+            className={`server-btn ${
+              selectedServer === 'server1' ? 'active' : ''
+            }`}
           >
             Server 1
           </button>
           <button
             onClick={() => setSelectedServer('server2')}
-            className={`server-btn ${selectedServer === 'server2' ? 'active' : ''}`}
+            className={`server-btn ${
+              selectedServer === 'server2' ? 'active' : ''
+            }`}
           >
             Server 2
           </button>
           <button
             onClick={() => setSelectedServer('server3')}
-            className={`server-btn ${selectedServer === 'server3' ? 'active' : ''}`}
+            className={`server-btn ${
+              selectedServer === 'server3' ? 'active' : ''
+            }`}
           >
             Server 3
           </button>
           <button
             onClick={() => setSelectedServer('server4')}
-            className={`server-btn ${selectedServer === 'server4' ? 'active' : ''}`}
+            className={`server-btn ${
+              selectedServer === 'server4' ? 'active' : ''
+            }`}
           >
             Server 4
           </button>
